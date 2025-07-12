@@ -2,6 +2,7 @@ use regex::{Captures, Regex};
 use serde::{Deserialize, Serialize};
 
 use crate::{character::{Promote, Skill}, parsed_character::ParsedSkill};
+use crate::helper_funcs::clean_text;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum OneValOrTwo {
@@ -16,7 +17,7 @@ pub fn handle_skills<'a>(skills : &'a Vec<Skill>) -> Vec<ParsedSkill> {
         //let str_list_converted_to_string = param_list.iter().map(|&z| z.to_string()).collect();
         let x = ParsedSkill {
             name: skill.name.clone(),
-            desc: skill.desc.clone(),
+            desc: clean_text(&skill.desc),
             parameters: handle_stats_trim_regex(&skill.promote),
             //param_values
         };
@@ -74,7 +75,7 @@ fn handle_stats_regex_separate(desc : &String, n0: &Vec<f64>, n9: &Vec<f64>, n12
             return format_percentage_or_not(format_type, *n0_value).to_owned();
         };
 
-        if n0_value.eq(n9_value) {
+        if params_round_to_same_value(n0_value, n9_value, n12_value) {
             return format_percentage_or_not(format_type, *n0_value);
         } else {
             return format_percentage_or_not_two_params(format_type, *n0_value, *n9_value, *n12_value);
@@ -83,6 +84,13 @@ fn handle_stats_regex_separate(desc : &String, n0: &Vec<f64>, n9: &Vec<f64>, n12
 
     let final_desc = new_desc.to_string();
     return final_desc;
+}
+
+fn params_round_to_same_value(n0: &f64, n9: &f64, n12: &f64) -> bool {
+    let n0n9 = format!("{n0:.1}") == format!("{n9:.1}");
+    let n0n12 = format!("{n0:.1}") == format!("{n12:.1}");
+    let n9n12 = format!("{n9:.1}") == format!("{n12:.1}");
+    n0n9 & n0n12 & n9n12
 }
 
 fn format_percentage_or_not (param_type : String, param : f64) -> std::string::String {

@@ -27,6 +27,30 @@ impl Parsed {
     }
 }
 
+pub fn clean_text(input: &str) -> String {
+    // Replace </color> with :
+    let close_color_re = Regex::new(r"</color>").unwrap();
+    let with_colons = close_color_re.replace_all(input, ":");
+
+    // Remove opening color tags
+    let open_color_re = Regex::new(r"<color=[^>]*>").unwrap();
+    let without_colors = open_color_re.replace_all(&with_colons, "");
+
+    // Remove <i> tags and their content
+    let italic_tag_re = Regex::new(r"<i>.*?</i>").unwrap();
+    let without_italics = italic_tag_re.replace_all(&without_colors, "");
+
+    // Replace newlines with spaces (handling both \n and \\n)
+    let newline_re = Regex::new(r"\\n|\n").unwrap();
+    let with_spaces = newline_re.replace_all(&without_italics, " ");
+
+    // Collapse multiple spaces into one and trim
+    let space_re = Regex::new(r"\s+").unwrap();
+    let cleaned = space_re.replace_all(&with_spaces, " ").trim().to_string();
+
+    cleaned
+}
+
 pub fn compare_color_texts(text1: &str, text2: &str) -> String {
     let re = Regex::new(r"(.*?)(<color=#[0-9A-Fa-f]{8}>([^<]*)</color>|$)").unwrap();
     
