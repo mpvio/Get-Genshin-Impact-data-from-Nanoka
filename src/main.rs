@@ -2,13 +2,13 @@ use ascension_funcs::get_ascension_stat_option;
 use character::Character;
 use material_funcs::parse_materials;
 use parsed_character::ParsedCharacter;
-use read_and_write_funcs::{check_and_write_to_file, get_ids_from_user, write_character_list_to_file};
+use read_and_write_funcs::{get_ids_from_user, write_character_list_to_file};
 use reqwest::Error;
 use skill_funcs::handle_skills;
 use hakushin_lists::{MinimalCharacterMap};
 use helper_funcs::{compare_color_texts, Parsed};
 
-use crate::{hakushin_lists::{MinimalArtifactMap, MinimalCardMap, MinimalWeaponMap}, helper_funcs::accumulate_materials, parsed_weapon::ParsedWeapon, read_and_write_funcs::{check_and_write, write_list_to_file}, weapon::Weapon};
+use crate::{hakushin_lists::{MinimalArtifact, MinimalArtifactMap, MinimalCardMap, MinimalWeaponMap}, helper_funcs::accumulate_materials, parsed_artifact::ParsedArtifact, parsed_weapon::ParsedWeapon, read_and_write_funcs::{check_and_write, write_list_to_file}, weapon::Weapon};
 
 pub mod character;
 pub mod parsed_character;
@@ -18,22 +18,34 @@ pub mod skill_funcs;
 pub mod read_and_write_funcs;
 pub mod hakushin_lists;
 pub mod weapon;
-mod parsed_weapon;
+pub mod parsed_weapon;
+pub mod parsed_artifact;
 pub mod helper_funcs;
 
 #[tokio::main]
 async fn main() {
-    get_minimals().await;
+    let artifacts = get_minimals().await;
     let inputs: String = get_ids_from_user();
     let ids : Vec<&str> = inputs.split_ascii_whitespace().collect();
+    //let mut ids_len5: Vec<&str> = Vec::new();
 
     for id in ids {
         if id.len() == 5 {
-            let res = weapon_access(id).await;
-            match res {
-                Ok(weapon) => check_and_write("weapon", Parsed::W(weapon)).await,
-                Err(err) => println!("{err:#?}"),
+            if let Some(ref sets) = artifacts {
+                if sets.contains_key(id) {
+                    // artifact
+                    let artifact = sets.get(id).unwrap();
+                    let new_art = artifact_access(artifact, id).await;
+                    check_and_write("artifact", Parsed::A(new_art)).await;
+                } else {
+                    let res = weapon_access(id).await;
+                    match res {
+                        Ok(weapon) => check_and_write("weapon", Parsed::W(weapon)).await,
+                        Err(err) => println!("{err:#?}"),
+                    }
+                }
             }
+            //ids_len5.push(id);
         }
         else {
             let character = character_api_access(id).await;
@@ -44,15 +56,15 @@ async fn main() {
     }
 }
 
-async fn get_minimals() {
+async fn get_minimals() -> Option<MinimalArtifactMap> {
     println!("CHARACTERS:");
     get_minimal_character_list().await;
     println!("\nWEAPONS:");
     get_minimal_weapons().await;
-    println!("\nARTIFACTS:");
-    get_minimal_artifacts().await;
     println!("\nCARDS:");
     get_minimal_cards().await;
+    println!("\nARTIFACTS:");
+    return get_minimal_artifacts().await;
 }
 
 async fn get_minimal_character_list() {
@@ -126,7 +138,7 @@ async fn get_minimal_cards() {
     }
 }
 
-async fn get_minimal_artifacts() {
+async fn get_minimal_artifacts() -> Option<MinimalArtifactMap> {
     let url = "https://api.hakush.in/gi/data/artifact.json";
     let chars_per_row = 5;
 
@@ -144,8 +156,27 @@ async fn get_minimal_artifacts() {
                 println!(); //forcibly switch to new line if total characters isn't a multiple of N
             }
             write_list_to_file("artifact", &map);
+            return Some(map);
         }
     }
+
+    None
+}
+
+async fn artifact_access(artifact: &MinimalArtifact, key: &str) -> ParsedArtifact {
+    let s = &artifact.set;
+    // get 2pc and 4pc effects
+    let new_key = format!("2{key}");
+    let fst = s.get(&format!("{new_key}0")).unwrap();
+    let lst = s.get(&format!("{new_key}1")).unwrap();
+    // add to new artifact struct
+    let new_artifact = ParsedArtifact {
+        name: fst.name.en.clone(),
+        two: fst.desc.en.clone(),
+        four: lst.desc.en.clone()
+    };
+    return new_artifact;
+
 }
 
 async fn weapon_access(id: &str) -> Result<ParsedWeapon, Error>{

@@ -3,6 +3,7 @@ use std::collections::{BTreeMap, HashMap};
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 
+use crate::parsed_artifact::ParsedArtifact;
 use crate::parsed_character::ParsedCharacter;
 use crate::parsed_weapon::ParsedWeapon;
 use crate::weapon::Item;
@@ -12,7 +13,8 @@ use crate::weapon::Materials;
 #[serde(untagged)]
 pub enum Parsed {
     C(ParsedCharacter),
-    W(ParsedWeapon)
+    W(ParsedWeapon),
+    A(ParsedArtifact)
 }
 
 impl Parsed {
@@ -20,6 +22,7 @@ impl Parsed {
         match self {
             Parsed::C(parsed_character) => &parsed_character.name,
             Parsed::W(parsed_weapon) => &parsed_weapon.name,
+            Parsed::A(parsed_artifact) => &parsed_artifact.name,
         }
     }
 }

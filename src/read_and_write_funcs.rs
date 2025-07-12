@@ -6,11 +6,11 @@ use crate::helper_funcs::Parsed;
 use serde_json::json;
 use serde_json_diff::Difference;
 
-fn write_diff_to_file(character : &Difference, name: &String){
+fn write_diff_to_file(diffs : &Difference, name: &String){
     let date = chrono::Local::now().format("%d-%m");
     let title = format!("{name}_{date}.json");
 
-    println!("{character:#?}");
+    //println!("{character:#?}");
 
     if let Ok(file) = File::options()
     //.read(true)
@@ -19,7 +19,7 @@ fn write_diff_to_file(character : &Difference, name: &String){
     .create(true)
     .open(&title) {
         //let reader = BufReader::new(&file);
-        let write_outcome = serde_json::to_writer_pretty(file, &character);
+        let write_outcome = serde_json::to_writer_pretty(file, &diffs);
         match write_outcome {
             Ok(_) => {
                 println!("{title} created.");
@@ -34,7 +34,7 @@ fn write_diff_to_file(character : &Difference, name: &String){
 async fn compare_items<T: serde::Serialize>(old: T, new: T, name: &String) -> bool {
     match serde_json_diff::values(json!(old), json!(new)) {
         Some(diffs) => {
-            println!("found diff!");
+            //println!("found diff!");
             write_diff_to_file(&diffs, &name);
             true
         },
@@ -82,7 +82,15 @@ pub async fn check_and_write(_category: &str, item: Parsed) {
                             write_item_to_file(&mut file, &current, &title, true);
                         }
                     },
-                    _ => {}
+                    (Parsed::A(old), Parsed::A(current)) => {
+                        let updated = compare_items(&old, &current, &current.name).await;
+                        if updated {
+                            write_item_to_file(&mut file, &current, &title, true);
+                        }
+                    }
+                    _ => {
+                        // content & item aren't the same struct
+                    }
                 }
             },
             Err(_) => {
