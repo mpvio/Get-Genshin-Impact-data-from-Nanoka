@@ -75,7 +75,7 @@ fn handle_stats_regex_separate(desc : &String, n0: &Vec<f64>, n9: &Vec<f64>, n12
             return format_percentage_or_not(format_type, *n0_value).to_owned();
         };
 
-        if params_round_to_same_value(n0_value, n9_value, n12_value) {
+        if n0_value.eq(n9_value) {
             return format_percentage_or_not(format_type, *n0_value);
         } else {
             return format_percentage_or_not_two_params(format_type, *n0_value, *n9_value, *n12_value);
@@ -86,17 +86,13 @@ fn handle_stats_regex_separate(desc : &String, n0: &Vec<f64>, n9: &Vec<f64>, n12
     return final_desc;
 }
 
-fn params_round_to_same_value(n0: &f64, n9: &f64, n12: &f64) -> bool {
-    let n0n9 = format!("{n0:.1}") == format!("{n9:.1}");
-    let n0n12 = format!("{n0:.1}") == format!("{n12:.1}");
-    let n9n12 = format!("{n9:.1}") == format!("{n12:.1}");
-    n0n9 & n0n12 & n9n12
-}
-
 fn format_percentage_or_not (param_type : String, param : f64) -> std::string::String {
     if param_type.eq("F1P") {
         let param_100 = param*100.0;
         format!("{param_100:.1}%")
+    } else if param_type.eq("F2P") {
+        let param_100 = param*100.0;
+        format!("{param_100:.2}%")
     } else if param_type.eq("F1") {
         format!("{param:.1}")
     } else {
@@ -114,6 +110,11 @@ fn format_percentage_or_not_two_params (
         let n9_100 = n9*100.0;
         let n12_100 = n12*100.0;
         format!("[{n0_100:.1}|{n9_100:.1}|{n12_100:.1}]%")
+    } else if param_type.eq("F2P") {
+        let n0_100 = n0*100.0;
+        let n9_100 = n9*100.0;
+        let n12_100 = n12*100.0;
+        format!("[{n0_100:.2}|{n9_100:.2}|{n12_100:.2}]%")
     } else if param_type.eq("F1") {
         format!("[{n0:.1}|{n9:.1}|{n12:.1}]")
     } else {
