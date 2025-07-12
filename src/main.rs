@@ -107,7 +107,12 @@ async fn get_minimal_cards() {
         if let Ok(map) = response.json::<MinimalCardMap>().await {
             let mut count = 0;
             for (key, value) in &map {
-                print!("{:<10}: {:<20} ", key, value.en);
+                let name = if key == "1506" {
+                    "Wanderer" // implement this better
+                } else {
+                    &value.en
+                };
+                print!("{:<10}: {:<20} ", key, name);
                 count += 1;
                 if count % chars_per_row == 0 {
                     println!(); //new line after every N characters
