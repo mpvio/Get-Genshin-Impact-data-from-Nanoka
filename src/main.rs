@@ -22,6 +22,7 @@ pub mod parsed_weapon;
 pub mod parsed_artifact;
 pub mod helper_funcs;
 
+// TODO: Clean up!
 #[tokio::main]
 async fn main() {
     let artifacts = get_minimals().await;
@@ -38,12 +39,10 @@ async fn main() {
                     let new_art = artifact_access(artifact, id).await;
                     check_and_write("artifact", Parsed::A(new_art)).await;
                 } else {
-                    let res = weapon_access(id).await;
-                    match res {
-                        Ok(weapon) => check_and_write("weapon", Parsed::W(weapon)).await,
-                        Err(err) => println!("{err:#?}"),
-                    }
+                    check_weapon(id).await;
                 }
+            } else {
+                check_weapon(id).await;
             }
             //ids_len5.push(id);
         }
@@ -54,6 +53,14 @@ async fn main() {
             //check_and_write_to_file(character).await;
         }
     }
+}
+
+async fn check_weapon(id: &str) {
+    let res = weapon_access(id).await;
+    match res {
+        Ok(weapon) => check_and_write("weapon", Parsed::W(weapon)).await,
+        Err(err) => println!("{err:#?}"),
+    } 
 }
 
 async fn get_minimals() -> Option<MinimalArtifactMap> {
