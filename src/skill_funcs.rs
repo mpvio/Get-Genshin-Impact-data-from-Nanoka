@@ -87,7 +87,7 @@ fn handle_stats_regex_separate(desc : &String, n0: &Vec<f64>, n9: &Vec<f64>, n12
 }
 
 fn format_percentage_or_not (param_type : String, param : f64) -> String {
-    println!("{param_type}: {param}");
+    //println!("{param_type}: {param}");
     if param_type.eq("F1P") {
         let param_100 = param*100.0;
         format!("{param_100:.1}%")
@@ -106,7 +106,7 @@ fn format_percentage_or_not_two_params (
     n0: f64, 
     n9: f64,
     n12: f64) -> String {
-    println!("{param_type}: {n0} {n9} {n12}");
+    //println!("{param_type}: {n0} {n9} {n12}");
     if param_type.eq("F1P") {
         let n0_100 = n0*100.0;
         let n9_100 = n9*100.0;

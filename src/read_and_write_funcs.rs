@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::{fs::File, io::{self, BufReader, Seek, SeekFrom}};
 
 use crate::{hakushin_lists::MinimalCharacterMap, parsed_character::ParsedCharacter};
@@ -6,28 +7,38 @@ use crate::helper_funcs::Parsed;
 use serde_json::json;
 use serde_json_diff::Difference;
 
-fn write_diff_to_file(diffs : &Difference, name: &String){
+fn write_diff_to_file(diffs: &Difference, name: &String) {
     let date = chrono::Local::now().format("%y-%m-%d");
-    let title = format!("{name}_{date}.json");
-
-    //println!("{character:#?}");
+    let base_title = format!("{name}_{date}.json");
+    //println!("{}", base_title);
+    
+    let mut counter = 0;
+    let mut title = base_title.clone();
+    
+    // Find the first available filename
+    while Path::new(&title).exists() {
+        counter += 1;
+        title = format!("{name}_{date} ({counter}).json");
+        //println!("{}", title);
+    }
 
     if let Ok(file) = File::options()
-    //.read(true)
-    .write(true)
-    .truncate(true)
-    .create(true)
-    .open(&title) {
-        //let reader = BufReader::new(&file);
+        .write(true)
+        .truncate(true)
+        .create_new(true)  // Using create_new to ensure atomicity
+        .open(&title) 
+    {
         let write_outcome = serde_json::to_writer_pretty(file, &diffs);
         match write_outcome {
             Ok(_) => {
                 println!("{title} created.");
             },
-            Err(_) => {
-                println!("Error with {title}.");
+            Err(e) => {
+                println!("Error writing to {title}: {}", e);
             },
         }
+    } else {
+        println!("Failed to create file {}", title);
     }
 }
 
