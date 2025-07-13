@@ -38,7 +38,7 @@ async fn main() {
         if id.len() == 4 || id.len() == 6 {
             match card_access(id).await {
                 Ok(card) => {
-                    
+                    check_and_write("card", Parsed::T(card)).await;
                 },
                 Err(err) => println!("{err:#?}"),
             }

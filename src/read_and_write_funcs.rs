@@ -7,7 +7,7 @@ use serde_json::json;
 use serde_json_diff::Difference;
 
 fn write_diff_to_file(diffs : &Difference, name: &String){
-    let date = chrono::Local::now().format("%d-%m");
+    let date = chrono::Local::now().format("%y-%m-%d");
     let title = format!("{name}_{date}.json");
 
     //println!("{character:#?}");
@@ -69,6 +69,7 @@ pub async fn check_and_write(_category: &str, item: Parsed) {
         let old_content: Result<Parsed, serde_json::Error> = serde_json::from_reader(reader);
         match old_content {
             Ok(content) => {
+                let name = item.name();
                 match (content, item) {
                     (Parsed::C(old), Parsed::C(current)) => {
                         let updated = compare_characters(&old, &current).await;
@@ -77,13 +78,19 @@ pub async fn check_and_write(_category: &str, item: Parsed) {
                         }
                     },
                     (Parsed::W(old), Parsed::W(current)) => {
-                        let updated = compare_items(&old, &current, &current.name).await;
+                        let updated = compare_items(&old, &current, &name).await;
                         if updated {
                             write_item_to_file(&mut file, &current, &title, true);
                         }
                     },
                     (Parsed::A(old), Parsed::A(current)) => {
-                        let updated = compare_items(&old, &current, &current.name).await;
+                        let updated = compare_items(&old, &current, &name).await;
+                        if updated {
+                            write_item_to_file(&mut file, &current, &title, true);
+                        }
+                    },
+                    (Parsed::T(old), Parsed::T(current)) => {
+                        let updated = compare_items(&old, &current, &name).await;
                         if updated {
                             write_item_to_file(&mut file, &current, &title, true);
                         }
