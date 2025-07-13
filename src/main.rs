@@ -12,19 +12,15 @@ use helper_funcs::{compare_color_texts, Parsed};
 
 use crate::{hakushin_lists::{MinimalArtifact, MinimalArtifactMap, MinimalCardMap, MinimalWeaponMap}, helper_funcs::accumulate_materials, parsed_artifact::ParsedArtifact, parsed_tcg::{ParsedCard, ParsedCharacterTCG, ParsedTalentTCG}, parsed_weapon::ParsedWeapon, read_and_write_funcs::{check_and_write, write_list_to_file}, tcg_cards::CharacterTCG, weapon::Weapon};
 
-pub mod character;
-pub mod parsed_character;
-pub mod ascension_funcs;
-pub mod material_funcs;
-pub mod skill_funcs;
-pub mod read_and_write_funcs;
-pub mod hakushin_lists;
-pub mod weapon;
-pub mod parsed_weapon;
-pub mod parsed_artifact;
-pub mod helper_funcs;
-pub mod tcg_cards;
-pub mod parsed_tcg;
+pub mod other_helper_funcs;
+pub mod parsed_models;
+pub mod base_models;
+pub mod character_funcs;
+
+use parsed_models::{parsed_artifact, parsed_character, parsed_weapon, parsed_tcg};
+use base_models::{character, weapon, tcg_cards, hakushin_lists};
+use character_funcs::{ascension_funcs, material_funcs, skill_funcs};
+use other_helper_funcs::{helper_funcs, read_and_write_funcs};
 
 // TODO: Clean up!
 #[tokio::main]
