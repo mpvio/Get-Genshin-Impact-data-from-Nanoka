@@ -4,6 +4,7 @@ use regex::Regex;
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 
+use crate::helper_funcs::clean_text_colon;
 use crate::parsed_tcg::{ParsedTCGTalent, ParsedTalent};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -12,24 +13,6 @@ pub enum TCGCardTypes {
     Character(CharacterTCG),
     Talent(TalentTCG)
 }
-
-// impl TCGCardTypes {
-//     pub fn get_tree(&self) -> BTreeMap<String, String> {
-//         let mut tree = BTreeMap::<String, String>::new();
-//         for (_, t) in &self.talent() {
-//             let partial_tree = t.get_tree();
-//             tree.extend(partial_tree);
-//         }
-//         return tree;
-//     }
-
-//     pub fn talent(&self) -> BTreeMap<String, TCGTalentEffect> {
-//         match self {
-//             TCGCardTypes::Character(card) => card.talent.clone(),
-//             TCGCardTypes::Talent(card) => card.talent.clone(),
-//         }
-//     }
-// }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -133,12 +116,8 @@ impl CharacterTCG {
 pub enum TCGChildTypes {
     Number(u8),
     String(String),
-    Child(Box<CharacterTCGTalentChild>), // Use Box to avoid recursive type issues
-    Empty(EmptyChild) // For empty objects like "Child": {}
+    Child(Box<TCGTalentEffect>), // Use Box to avoid recursive type issues
 }
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct EmptyChild {}
 
 impl TCGChildTypes {
     pub fn get(&self) -> String {
@@ -146,7 +125,6 @@ impl TCGChildTypes {
             TCGChildTypes::Number(val) => val.to_string(),
             TCGChildTypes::String(val) => val.clone(),
             TCGChildTypes::Child(val) => val.name.clone(),
-            TCGChildTypes::Empty(_) => String::new(),
         }
     }
 }
@@ -159,14 +137,19 @@ pub struct TCGTalentEffect {
     #[serde(rename = "Desc")]
     pub desc: String, 
     #[serde(rename = "Child")]
-    pub child: BTreeMap<String, TCGChildTypes>,
+    pub child: Option<BTreeMap<String, TCGChildTypes>>,
 }
 
 impl TCGTalentEffect {
     pub fn get_tree(&self) -> BTreeMap<String, String> {
         let mut tree = BTreeMap::<String, String>::new();
-        for (key, value) in &self.child {
-            tree.insert(key.to_string(), value.get());
+        match &self.child {
+            Some(data) => {
+                for (key, value) in data {
+                    tree.insert(key.to_string(), value.get());
+                }
+            },
+            None => {},
         }
         return tree;
     }
@@ -212,7 +195,7 @@ impl TCGTalentEffect {
 
         ParsedTCGTalent {
             name: self.name.clone(),
-            desc: final_desc
+            desc: clean_text_colon(&final_desc, false) // not sure why technique descs aren't already clean?
         }
     }
 }

@@ -28,9 +28,14 @@ impl Parsed {
 }
 
 pub fn clean_text(input: &str) -> String {
+    return clean_text_colon(input, true);
+}
+
+pub fn clean_text_colon(input: &str, keep_colon: bool) -> String {
     // Replace </color> with :
     let close_color_re = Regex::new(r"</color>").unwrap();
-    let with_colons = close_color_re.replace_all(input, ":");
+    let replacement : &'static str = if keep_colon { ":" } else { "" };
+    let with_colons = close_color_re.replace_all(input, replacement);
 
     // Remove opening color tags
     let open_color_re = Regex::new(r"<color=[^>]*>").unwrap();
@@ -46,9 +51,18 @@ pub fn clean_text(input: &str) -> String {
 
     // Collapse multiple spaces into one and trim
     let space_re = Regex::new(r"\s+").unwrap();
-    let cleaned = space_re.replace_all(&with_spaces, " ").trim().to_string();
+    let cleaned = space_re.replace_all(&with_spaces, " ");
 
-    cleaned
+    // Remove SPRITE tag (for TCG cards)
+    if keep_colon {
+        cleaned.trim().to_string()
+    } else {
+        let sprite_re = Regex::new(r"\{SPRITE_PRESET#[^>]*\}").unwrap();
+        let ready = sprite_re.replace_all(&cleaned, "").trim().to_string();
+
+        ready
+    }
+
 }
 
 pub fn compare_color_texts(text1: &str, text2: &str) -> String {
