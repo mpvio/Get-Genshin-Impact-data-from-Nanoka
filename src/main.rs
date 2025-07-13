@@ -206,7 +206,7 @@ async fn card_access(id: &str) -> Result<(), Error> {
         if response.status() == reqwest::StatusCode::OK {
             //println!("3");
             let card = response.json::<CharacterTCG>().await?;
-            println!("{card:#?}");
+            //println!("{card:#?}\n");
             let all_terms: BTreeMap<String, String> = card.get_tree();
 
             // for (key, value) in card.get_tree() {
@@ -233,7 +233,7 @@ async fn card_access(id: &str) -> Result<(), Error> {
                         talents: talents.talent().unwrap().clone(),
                     })
             };
-            println!("{parsed_card:#?}");
+            //println!("{parsed_card:#?}");
         }
         return Ok(());
     }
