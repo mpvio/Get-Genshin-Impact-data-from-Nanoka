@@ -10,7 +10,16 @@ use skill_funcs::handle_skills;
 use hakushin_lists::{MinimalCharacterMap};
 use helper_funcs::{compare_color_texts, Parsed};
 
-use crate::{hakushin_lists::{MinimalArtifact, MinimalArtifactMap, MinimalCardMap, MinimalWeaponMap}, helper_funcs::accumulate_materials, parsed_artifact::ParsedArtifact, parsed_tcg::{ParsedCard, ParsedCharacterTCG, ParsedTalentTCG}, parsed_weapon::ParsedWeapon, read_and_write_funcs::{check_and_write, write_list_to_file}, tcg_cards::CharacterTCG, weapon::Weapon};
+use crate::{
+    hakushin_lists::{MinimalArtifact, MinimalArtifactMap, MinimalCardMap, MinimalWeaponMap}, 
+    helper_funcs::accumulate_materials, 
+    parsed_artifact::ParsedArtifact, 
+    parsed_tcg::{ParsedCard, ParsedCharacterTCG, ParsedTalentTCG}, 
+    parsed_weapon::ParsedWeapon, 
+    read_and_write_funcs::{check_and_write, write_list_to_file}, 
+    tcg_cards::CharacterTCG, 
+    weapon::Weapon
+};
 
 pub mod other_helper_funcs;
 pub mod parsed_models;
