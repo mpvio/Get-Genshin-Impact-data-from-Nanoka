@@ -37,7 +37,9 @@ async fn main() {
     for id in ids {
         if id.len() == 4 || id.len() == 6 {
             match card_access(id).await {
-                Ok(_) => {},
+                Ok(card) => {
+                    
+                },
                 Err(err) => println!("{err:#?}"),
             }
         } 
@@ -196,7 +198,7 @@ async fn artifact_access(artifact: &MinimalArtifact, key: &str) -> ParsedArtifac
 
 }
 
-async fn card_access(id: &str) -> Result<(), Error> {
+async fn card_access(id: &str) -> Result<ParsedCard, Error> {
     let base_url = format!("https://api.hakush.in/gi/data/en/gcg/{id}.json");
 
     if let Ok(url) = reqwest::Url::parse(&base_url) {
@@ -233,11 +235,12 @@ async fn card_access(id: &str) -> Result<(), Error> {
                         talents: talents.talent().unwrap().clone(),
                     })
             };
+
+            return Ok(parsed_card)
             //println!("{parsed_card:#?}");
         }
-        return Ok(());
     }
-    return Ok(());
+    panic!("API FAIL");
 }
 
 async fn weapon_access(id: &str) -> Result<ParsedWeapon, Error>{

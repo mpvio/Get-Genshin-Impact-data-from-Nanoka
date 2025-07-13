@@ -12,6 +12,15 @@ pub enum ParsedCard {
     Talent(ParsedTalentTCG)
 }
 
+impl ParsedCard {
+    pub fn name(&self) -> &String {
+        match self {
+            ParsedCard::Character(parsed_character_tcg) => &parsed_character_tcg.name,
+            ParsedCard::Talent(parsed_talent_tcg) => &parsed_talent_tcg.name,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ParsedTalent {

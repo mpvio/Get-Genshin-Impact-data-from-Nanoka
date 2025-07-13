@@ -5,6 +5,7 @@ use serde_derive::Serialize;
 
 use crate::parsed_artifact::ParsedArtifact;
 use crate::parsed_character::ParsedCharacter;
+use crate::parsed_tcg::ParsedCard;
 use crate::parsed_weapon::ParsedWeapon;
 use crate::weapon::Item;
 use crate::weapon::Materials;
@@ -14,15 +15,20 @@ use crate::weapon::Materials;
 pub enum Parsed {
     C(ParsedCharacter),
     W(ParsedWeapon),
-    A(ParsedArtifact)
+    A(ParsedArtifact),
+    T(ParsedCard)
 }
 
 impl Parsed {
-    pub fn name(&self) -> &String {
+    pub fn name(&self) -> String {
         match self {
-            Parsed::C(parsed_character) => &parsed_character.name,
-            Parsed::W(parsed_weapon) => &parsed_weapon.name,
-            Parsed::A(parsed_artifact) => &parsed_artifact.name,
+            Parsed::C(parsed_character) => parsed_character.name.clone(),
+            Parsed::W(parsed_weapon) => parsed_weapon.name.clone(),
+            Parsed::A(parsed_artifact) => parsed_artifact.name.clone(),
+            Parsed::T(parsed_card) => {
+                let name = parsed_card.name();
+                return format!("{name} TCG");
+            },
         }
     }
 }
