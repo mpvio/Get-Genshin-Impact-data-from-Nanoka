@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use ascension_funcs::get_ascension_stat_option;
 use character::Character;
 use material_funcs::parse_materials;
@@ -8,7 +10,7 @@ use skill_funcs::handle_skills;
 use hakushin_lists::{MinimalCharacterMap};
 use helper_funcs::{compare_color_texts, Parsed};
 
-use crate::{hakushin_lists::{MinimalArtifact, MinimalArtifactMap, MinimalCardMap, MinimalWeaponMap}, helper_funcs::accumulate_materials, parsed_artifact::ParsedArtifact, parsed_weapon::ParsedWeapon, read_and_write_funcs::{check_and_write, write_list_to_file}, weapon::Weapon};
+use crate::{hakushin_lists::{MinimalArtifact, MinimalArtifactMap, MinimalCardMap, MinimalWeaponMap}, helper_funcs::accumulate_materials, parsed_artifact::ParsedArtifact, parsed_tcg::{ParsedCard, ParsedCharacterTCG, ParsedTCGTalent, ParsedTalentTCG}, parsed_weapon::ParsedWeapon, read_and_write_funcs::{check_and_write, write_list_to_file}, tcg_cards::{CharacterTCG, Cost, TCGCardTypes, TalentTCG}, weapon::Weapon};
 
 pub mod character;
 pub mod parsed_character;
@@ -21,6 +23,8 @@ pub mod weapon;
 pub mod parsed_weapon;
 pub mod parsed_artifact;
 pub mod helper_funcs;
+pub mod tcg_cards;
+pub mod parsed_tcg;
 
 // TODO: Clean up!
 #[tokio::main]
@@ -31,7 +35,13 @@ async fn main() {
     //let mut ids_len5: Vec<&str> = Vec::new();
 
     for id in ids {
-        if id.len() == 5 {
+        if id.len() == 4 || id.len() == 6 {
+            match card_access(id).await {
+                Ok(_) => {},
+                Err(err) => println!("{err:#?}"),
+            }
+        } 
+        else if id.len() == 5 {
             if let Some(ref sets) = artifacts {
                 if sets.contains_key(id) {
                     // artifact
@@ -184,6 +194,50 @@ async fn artifact_access(artifact: &MinimalArtifact, key: &str) -> ParsedArtifac
     };
     return new_artifact;
 
+}
+
+async fn card_access(id: &str) -> Result<(), Error> {
+    let base_url = format!("https://api.hakush.in/gi/data/en/gcg/{id}.json");
+
+    if let Ok(url) = reqwest::Url::parse(&base_url) {
+        //println!("1");
+        let response = reqwest::get(url).await?;
+        //println!("2");
+        if response.status() == reqwest::StatusCode::OK {
+            //println!("3");
+            let card = response.json::<CharacterTCG>().await?;
+            println!("{card:#?}");
+            let all_terms: BTreeMap<String, String> = card.get_tree();
+
+            // for (key, value) in card.get_tree() {
+            //     talents.insert(key, value.convert(&all_terms));
+            // }
+            let talents = card.convert(&all_terms);
+            let card_type = &card.card_type;
+
+            let parsed_card = if card_type == "Character" {
+                    ParsedCard::Character(ParsedCharacterTCG {
+                        name: card.name,
+                        card_type: card.card_type,
+                        hp: card.hp.unwrap(),
+                        cost: card.cost.character().unwrap(), // u8
+                        tag: card.tag,
+                        talents: talents.character().unwrap().clone(),
+                    })
+            } else {
+                    ParsedCard::Talent(ParsedTalentTCG {
+                        name: card.name,
+                        card_type: card.card_type,
+                        cost: card.cost.talent().unwrap().to_vec(), // Vec<TalentTCGCost>
+                        tag: card.tag,
+                        talents: talents.talent().unwrap().clone(),
+                    })
+            };
+            println!("{parsed_card:#?}");
+        }
+        return Ok(());
+    }
+    return Ok(());
 }
 
 async fn weapon_access(id: &str) -> Result<ParsedWeapon, Error>{
