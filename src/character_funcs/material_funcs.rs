@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::{character::{AscensionORTalent, Materials}, parsed_character::ParsedMaterial};
+use crate::{character::{AscensionORTalent, Materials}, parsed_models::ParsedMaterial};
 
 pub fn parse_materials<'b>(materials : &'b Materials) -> (Vec<ParsedMaterial>, Vec<ParsedMaterial>) {
     //ascensions

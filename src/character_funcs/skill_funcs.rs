@@ -1,7 +1,7 @@
 use regex::{Captures, Regex};
 use serde::{Deserialize, Serialize};
 
-use crate::{character::{Promote, Skill}, parsed_character::ParsedSkill};
+use crate::{character::{Promote, Skill}, parsed_models::ParsedSkill};
 use crate::helper_funcs::clean_text;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

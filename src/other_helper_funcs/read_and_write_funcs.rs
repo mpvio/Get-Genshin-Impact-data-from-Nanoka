@@ -2,7 +2,7 @@ use std::fs::create_dir_all;
 use std::path::Path;
 use std::{fs::File, io::{self, BufReader, Seek, SeekFrom}};
 
-use crate::{hakushin_lists::MinimalCharacterMap, parsed_character::ParsedCharacter};
+use crate::{hakushin_lists::MinimalCharacterMap, parsed_models::ParsedCharacter};
 use crate::helper_funcs::Parsed;
 
 use serde_json::json;

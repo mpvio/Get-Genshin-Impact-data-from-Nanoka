@@ -5,7 +5,7 @@ use serde_derive::Deserialize;
 use serde_derive::Serialize;
 
 use crate::helper_funcs::clean_text_colon;
-use crate::parsed_tcg::{ParsedTCGTalent, ParsedTalent};
+use crate::parsed_models::{ParsedTCGTalent, ParsedTalent};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]

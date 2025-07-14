@@ -4,10 +4,10 @@ use std::collections::{BTreeMap, HashMap};
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 
-use crate::parsed_artifact::ParsedArtifact;
-use crate::parsed_character::ParsedCharacter;
-use crate::parsed_tcg::ParsedCard;
-use crate::parsed_weapon::ParsedWeapon;
+use crate::parsed_models::ParsedArtifact;
+use crate::parsed_models::ParsedCharacter;
+use crate::parsed_models::ParsedCard;
+use crate::parsed_models::ParsedWeapon;
 use crate::weapon::Item;
 use crate::weapon::Materials;
 
