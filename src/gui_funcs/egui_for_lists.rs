@@ -10,8 +10,7 @@ pub struct HakuGIApp {
     cards: Vec<ItemNames>,
     artifacts: Vec<ItemNames>,
     query: String,
-    arts: Option<MinimalArtifactMap>,
-    runtime: tokio::runtime::Runtime
+    arts: Option<MinimalArtifactMap>
 }
 
 impl HakuGIApp {
@@ -29,8 +28,7 @@ impl HakuGIApp {
             cards,
             artifacts,
             query: String::new(),
-            arts,
-            runtime: tokio::runtime::Runtime::new().unwrap()
+            arts
         }
     }
 }
@@ -45,8 +43,7 @@ impl eframe::App for HakuGIApp {
                 &self.cards, 
                 &self.artifacts, 
                 &mut self.query, 
-                &self.arts,
-                &self.runtime
+                &self.arts
             );
         });
     }
@@ -60,7 +57,7 @@ pub fn show_names_on_ui(
     artifacts: &Vec<ItemNames>,
     query: &mut String,
     arts: &Option<MinimalArtifactMap>,
-    runtime: &Runtime
+    //runtime: &mut Option<Runtime>
 ) {
     let min_height = 400.0;
     let min_width = 100.0;
@@ -135,12 +132,19 @@ pub fn show_names_on_ui(
             ui.text_edit_singleline(query);
             if ui.button("Search").clicked() && !query.is_empty() {
 
-                // add tokio runtime to app and clone params to access async function
+                // clone params to access async function
                 let query_clone = query.clone();
                 let arts_clone = arts.clone();
-                runtime.spawn(async move {
-                    query_api(&query_clone, &arts_clone).await;
+
+                // create temporary thread to access async function
+                std::thread::spawn(move || {
+                    Runtime::new().unwrap().block_on(async {
+                        query_api(&query_clone, &arts_clone).await;
+                    })
                 });
+
+                // set text to null once queried
+                query.clear();
             };
         });
     });
