@@ -3,20 +3,53 @@ use std::collections::BTreeMap;
 use reqwest::Error;
 
 use crate::{
-    base_models::{character::Character, hakushin_lists::MinimalArtifact, tcg_cards::CharacterTCG, weapon::Weapon}, 
+    base_models::{character::Character, hakushin_lists::{MinimalArtifact, MinimalArtifactMap}, tcg_cards::CharacterTCG, weapon::Weapon}, 
     character_funcs::{ascension_funcs::get_ascension_stat_option, material_funcs::parse_materials, skill_funcs::handle_skills}, 
     other_helper_funcs::{helper_funcs::{accumulate_materials, compare_color_texts, Parsed}, read_and_write_funcs::check_and_write}, 
     parsed_models::{ParsedArtifact, ParsedCard, ParsedCharacter, ParsedCharacterTCG, ParsedTalentTCG, ParsedWeapon}
 };
 
-pub async fn check_weapon(id: &str) {
+pub async fn query_api(inputs: &String, artifacts: &Option<MinimalArtifactMap>) {
+    let ids : Vec<&str> = inputs.split_ascii_whitespace().collect();
+
+    for id in ids {
+        if id.len() == 4 || id.len() == 6 {
+            match card_access(id).await {
+                Ok(card) => {
+                    check_and_write("card", Parsed::T(card)).await;
+                },
+                Err(err) => println!("{err:#?}"),
+            }
+        } 
+        else if id.len() == 5 {
+            if let Some(ref sets) = artifacts {
+                if sets.contains_key(id) {
+                    // artifact
+                    let artifact = sets.get(id).unwrap();
+                    let new_art = artifact_access(artifact, id).await;
+                    check_and_write("artifact", Parsed::A(new_art)).await;
+                } else {
+                    check_weapon(id).await;
+                }
+            } else {
+                check_weapon(id).await;
+            }
+        }
+        else {
+            let character = character_api_access(id).await;
+            check_and_write("character", Parsed::C(character)).await;
+        }
+    }
+}
+
+async fn check_weapon(id: &str) {
     let res = weapon_access(id).await;
     match res {
         Ok(weapon) => check_and_write("weapon", Parsed::W(weapon)).await,
         Err(err) => println!("{err:#?}"),
     } 
 }
-pub async fn artifact_access(artifact: &MinimalArtifact, key: &str) -> ParsedArtifact {
+async fn artifact_access(artifact: &MinimalArtifact, key: &str) -> ParsedArtifact {
     let s = &artifact.set;
     // get 2pc and 4pc effects
     let new_key = format!("2{key}");
@@ -32,7 +65,7 @@ pub async fn artifact_access(artifact: &MinimalArtifact, key: &str) -> ParsedArt
 
 }
 
-pub async fn card_access(id: &str) -> Result<ParsedCard, Error> {
+async fn card_access(id: &str) -> Result<ParsedCard, Error> {
     let base_url = format!("https://api.hakush.in/gi/data/en/gcg/{id}.json");
 
     if let Ok(url) = reqwest::Url::parse(&base_url) {
@@ -77,7 +110,7 @@ pub async fn card_access(id: &str) -> Result<ParsedCard, Error> {
     panic!("API FAIL");
 }
 
-pub async fn weapon_access(id: &str) -> Result<ParsedWeapon, Error>{
+async fn weapon_access(id: &str) -> Result<ParsedWeapon, Error>{
     let base_url = format!("https://api.hakush.in/gi/data/en/weapon/{}.json", id);
     //println!("WEAPON");
 
@@ -112,7 +145,7 @@ pub async fn weapon_access(id: &str) -> Result<ParsedWeapon, Error>{
     panic!("API CALL FAILED");
 }
 
-pub async fn character_api_access(char_id : &str) -> ParsedCharacter {
+async fn character_api_access(char_id : &str) -> ParsedCharacter {
     let base_url = format!("https://api.hakush.in/gi/data/en/character/{}.json",char_id);
     //println!("CHARACTER");
 

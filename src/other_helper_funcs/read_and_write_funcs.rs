@@ -7,13 +7,14 @@ use crate::helper_funcs::Parsed;
 
 use serde_json::json;
 use serde_json_diff::Difference;
+use serde::{Serialize, Deserialize};
 
-fn write_diff_to_file(diffs: &Difference, name: &String) {
+fn write_diff_to_file(diffs: &Difference, name: &String, list: bool) {
     let date = chrono::Local::now().format("%y-%m-%d");
-    let folders = "changes";
+    let folders = if !list {"changes"} else {"list_changes"};
     create_dir_all(folders).unwrap();
     let base_title = format!("{folders}/{name}_{date}.json");
-    println!("{}", base_title);
+    //println!("{}", base_title);
     
     let mut counter = 0;
     let mut title = base_title.clone();
@@ -22,7 +23,7 @@ fn write_diff_to_file(diffs: &Difference, name: &String) {
     while Path::new(&title).exists() {
         counter += 1;
         title = format!("changes/{name}_{date} ({counter}).json");
-        println!("{}", title);
+        //println!("{}", title);
     }
 
     if let Ok(file) = File::options()
@@ -49,7 +50,7 @@ async fn compare_items<T: serde::Serialize>(old: T, new: T, name: &String) -> bo
     match serde_json_diff::values(json!(old), json!(new)) {
         Some(diffs) => {
             //println!("found diff!");
-            write_diff_to_file(&diffs, &name);
+            write_diff_to_file(&diffs, &name, false);
             true
         },
         None => false,
@@ -63,7 +64,7 @@ async fn compare_characters(old_char : &ParsedCharacter, new_char : &ParsedChara
     match serde_json_diff::values(old_char_json, new_char_json) {
         Some(differences) => {
             //println!("{differences:#?}");
-            write_diff_to_file(&differences, &old_char.name);
+            write_diff_to_file(&differences, &old_char.name, false);
             true
         },
         None => {
@@ -164,10 +165,20 @@ pub fn write_character_list_to_file(map: &MinimalNameMap){
     }
 }
 
-pub fn write_list_to_file<T: serde::Serialize>(name: &'static str, map: &T) {
-    let txt = format!("{name}.json");
-    let path = txt.as_str();
-    let mut file = File::create(path).unwrap();
+/*
+async fn compare_items<T: serde::Serialize>(old: T, new: T, name: &String) -> bool {
+    match serde_json_diff::values(json!(old), json!(new)) {
+        Some(diffs) => {
+            //println!("found diff!");
+            write_diff_to_file(&diffs, &name);
+            true
+        },
+        None => false,
+    }
+}
+*/
+
+async fn write_list_to_file_helper<T: Serialize + for<'a> Deserialize<'a>>(mut file: File, map: &T, path: &str) {
     let _ = file.seek(SeekFrom::Start(0));
     match serde_json::to_writer_pretty(file, &map) {
         Ok(_) => {
@@ -179,6 +190,100 @@ pub fn write_list_to_file<T: serde::Serialize>(name: &'static str, map: &T) {
         },
     }
 }
+
+pub async fn write_list_to_file<T: Serialize + for<'a> Deserialize<'a>>(name: &'static str, map: &T) {
+    let txt = format!("{name}.json");
+    let path = txt.as_str();
+
+    if let Ok(file) = File::options().read(true).write(true).create(true).open(path) {
+        let reader = BufReader::new(&file);
+        let old_content: Result<T, serde_json::Error> = serde_json::from_reader(reader);
+        match old_content {
+            Ok(content) => {
+                match serde_json_diff::values(json!(content), json!(map)) {
+                    Some(diffs) => {
+                        write_diff_to_file(&diffs, &name.to_string(), true);
+                        write_list_to_file_helper(file, map, path).await;
+                    },
+                    None => {
+                        // no changes to save
+                    },
+                }
+            },
+            Err(_) => {
+                // old version didn't exist
+                write_list_to_file_helper(file, map, path).await;
+            },
+        }
+    }
+
+    // let mut file = File::create(path).unwrap();
+    // let _ = file.seek(SeekFrom::Start(0));
+    // match serde_json::to_writer_pretty(file, &map) {
+    //     Ok(_) => {
+    //         println!("{path} created.");
+    //         }
+    //     ,
+    //     Err(err) => {
+    //         println!("{:#?}", err);
+    //     },
+    // }
+}
+
+/*
+pub async fn check_and_write(_category: &str, item: Parsed) {
+    let folders = format!("results/{_category}");
+    create_dir_all(&folders).unwrap();
+
+    let title = format!("{}/{}.json", folders, item.name());
+    if let Ok(mut file) = File::options()
+    .read(true)
+    .write(true)
+    .create(true)
+    .open(&title) {
+        let reader = BufReader::new(&file);
+        let old_content: Result<Parsed, serde_json::Error> = serde_json::from_reader(reader);
+        match old_content {
+            Ok(content) => {
+                let name = item.name();
+                match (content, item) {
+                    (Parsed::C(old), Parsed::C(current)) => {
+                        let updated = compare_items(&old, &current, &name).await;
+                        if updated {
+                            write_item_to_file(&mut file, &current, &title, true);
+                        }
+                    },
+                    (Parsed::W(old), Parsed::W(current)) => {
+                        let updated = compare_items(&old, &current, &name).await;
+                        if updated {
+                            write_item_to_file(&mut file, &current, &title, true);
+                        }
+                    },
+                    (Parsed::A(old), Parsed::A(current)) => {
+                        let updated = compare_items(&old, &current, &name).await;
+                        if updated {
+                            write_item_to_file(&mut file, &current, &title, true);
+                        }
+                    },
+                    (Parsed::T(old), Parsed::T(current)) => {
+                        let updated = compare_items(&old, &current, &name).await;
+                        if updated {
+                            write_item_to_file(&mut file, &current, &title, true);
+                        }
+                    }
+                    _ => {
+                        // content & item aren't the same struct
+                    }
+                }
+            },
+            Err(_) => {
+                // file didn't exist
+                write_item_to_file(&mut file, &item, &title, false);
+            },
+        }
+    }
+}
+*/
 
 pub fn write_item_to_file<T: serde::Serialize>(file: &mut File, item: &T, title: &String, update: bool) {
     let _ = file.seek(SeekFrom::Start(0));

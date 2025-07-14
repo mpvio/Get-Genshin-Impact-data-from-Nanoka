@@ -1,18 +1,18 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct JustTheName {
     #[serde(rename = "EN")]
     pub en: String //valid for characters, weapons, tcg cards
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MinimalArtifact {
     pub set: BTreeMap<String, MinimalArtifactSet>
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MinimalArtifactSet {
     pub name: JustTheName,
     pub desc: JustTheName
