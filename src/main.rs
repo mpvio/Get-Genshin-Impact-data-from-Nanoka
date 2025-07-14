@@ -259,6 +259,7 @@ async fn weapon_access(id: &str) -> Result<ParsedWeapon, Error>{
         if response.status() == reqwest::StatusCode::OK {
             //println!("3");
             let weapon = response.json::<Weapon>().await?;
+            //println!("{weapon:#?}");
 
             let r1 = &weapon.refinement.r1.desc;
             let r5 = &weapon.refinement.r5.desc;
@@ -274,6 +275,7 @@ async fn weapon_access(id: &str) -> Result<ParsedWeapon, Error>{
                 effect: eff,
                 materials: mats
             };
+            //println!("{parsed_weapon:#?}");
 
             return Ok(parsed_weapon);
         }

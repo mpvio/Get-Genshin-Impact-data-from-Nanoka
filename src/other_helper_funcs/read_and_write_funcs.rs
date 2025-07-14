@@ -1,3 +1,4 @@
+use std::fs::create_dir_all;
 use std::path::Path;
 use std::{fs::File, io::{self, BufReader, Seek, SeekFrom}};
 
@@ -9,8 +10,10 @@ use serde_json_diff::Difference;
 
 fn write_diff_to_file(diffs: &Difference, name: &String) {
     let date = chrono::Local::now().format("%y-%m-%d");
-    let base_title = format!("{name}_{date}.json");
-    //println!("{}", base_title);
+    let folders = "changes";
+    create_dir_all(folders).unwrap();
+    let base_title = format!("{folders}/{name}_{date}.json");
+    println!("{}", base_title);
     
     let mut counter = 0;
     let mut title = base_title.clone();
@@ -18,8 +21,8 @@ fn write_diff_to_file(diffs: &Difference, name: &String) {
     // Find the first available filename
     while Path::new(&title).exists() {
         counter += 1;
-        title = format!("{name}_{date} ({counter}).json");
-        //println!("{}", title);
+        title = format!("changes/{name}_{date} ({counter}).json");
+        println!("{}", title);
     }
 
     if let Ok(file) = File::options()
@@ -70,7 +73,10 @@ async fn compare_characters(old_char : &ParsedCharacter, new_char : &ParsedChara
 }
 
 pub async fn check_and_write(_category: &str, item: Parsed) {
-    let title = format!("{}.json", item.name());
+    let folders = format!("results/{_category}");
+    create_dir_all(&folders).unwrap();
+
+    let title = format!("{}/{}.json", folders, item.name());
     if let Ok(mut file) = File::options()
     .read(true)
     .write(true)
@@ -83,7 +89,7 @@ pub async fn check_and_write(_category: &str, item: Parsed) {
                 let name = item.name();
                 match (content, item) {
                     (Parsed::C(old), Parsed::C(current)) => {
-                        let updated = compare_characters(&old, &current).await;
+                        let updated = compare_items(&old, &current, &name).await;
                         if updated {
                             write_item_to_file(&mut file, &current, &title, true);
                         }

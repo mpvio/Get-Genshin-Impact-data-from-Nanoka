@@ -1,4 +1,5 @@
 use regex::Regex;
+use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashMap};
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
@@ -134,14 +135,22 @@ pub fn accumulate_materials(materials_map: &BTreeMap<String, Materials>) -> Mate
         }
     }
 
-    // Convert to Vec<Item> and sort by rank
+    // Convert to Vec<Item> and sort by rank, then name
     let mut mats: Vec<Item> = item_map
         .into_iter()
         .map(|(name, (count, rank))| Item { name, count, rank })
         .collect();
     
-    // Sort by rank in ascending order
-    mats.sort_by(|a, b| a.rank.cmp(&b.rank));
+    mats.sort_by(|a, b| {
+        let rank_cmp = a.rank.cmp(&b.rank);
+        // if ranking is equal, sort by name as well
+        // stops items of same rank being saved in random orders in final file
+        if rank_cmp == Ordering::Equal {
+            a.name.cmp(&b.name)
+        } else {
+            rank_cmp
+        }
+    });
 
     Materials {
         mats,
