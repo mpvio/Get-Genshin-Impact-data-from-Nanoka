@@ -2,7 +2,7 @@ use std::fs::create_dir_all;
 use std::path::Path;
 use std::{fs::File, io::{self, BufReader, Seek, SeekFrom}};
 
-use crate::{hakushin_lists::MinimalCharacterMap, parsed_models::ParsedCharacter};
+use crate::{hakushin_lists::MinimalNameMap, parsed_models::ParsedCharacter};
 use crate::helper_funcs::Parsed;
 
 use serde_json::json;
@@ -149,7 +149,7 @@ pub async fn check_and_write_to_file(character : ParsedCharacter){
     }
 }
 
-pub fn write_character_list_to_file(map: &MinimalCharacterMap){
+pub fn write_character_list_to_file(map: &MinimalNameMap){
     let path = "characters.json";
     let mut file = File::create(path).unwrap();
     let _ = file.seek(SeekFrom::Start(0));

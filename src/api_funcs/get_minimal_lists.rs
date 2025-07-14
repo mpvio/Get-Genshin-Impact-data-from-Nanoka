@@ -1,4 +1,7 @@
-use crate::{base_models::hakushin_lists::{MinimalArtifactMap, MinimalCardMap, MinimalCharacterMap, MinimalWeaponMap}, other_helper_funcs::read_and_write_funcs::{write_character_list_to_file, write_list_to_file}};
+use crate::{
+    base_models::hakushin_lists::{MinimalArtifactMap, MinimalNameMap}, 
+    other_helper_funcs::read_and_write_funcs::{write_character_list_to_file, write_list_to_file}
+};
 
 pub async fn get_minimals() -> Option<MinimalArtifactMap> {
     println!("CHARACTERS:");
@@ -16,7 +19,7 @@ async fn get_minimal_character_list() {
     let chars_per_row = 5;
 
     if let Ok(response) = reqwest::get(url).await {
-        if let Ok(map) = response.json::<MinimalCharacterMap>().await {
+        if let Ok(map) = response.json::<MinimalNameMap>().await {
             let mut count = 0;
             for (key, value) in &map {
                 print!("{:<10}: {:<20} ", key, value.en);
@@ -38,7 +41,7 @@ async fn get_minimal_weapons() {
     let chars_per_row = 5;
 
     if let Ok(response) = reqwest::get(url).await {
-        if let Ok(map) = response.json::<MinimalWeaponMap>().await {
+        if let Ok(map) = response.json::<MinimalNameMap>().await {
             let mut count = 0;
             for (key, value) in &map {
                 print!("{:<10}: {:<20} ", key, value.en);
@@ -60,7 +63,7 @@ async fn get_minimal_cards() {
     let chars_per_row = 5;
 
     if let Ok(response) = reqwest::get(url).await {
-        if let Ok(map) = response.json::<MinimalCardMap>().await {
+        if let Ok(map) = response.json::<MinimalNameMap>().await {
             let mut count = 0;
             for (key, value) in &map {
                 let name = if key == "1506" {
