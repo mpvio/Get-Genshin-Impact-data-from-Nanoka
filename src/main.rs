@@ -41,41 +41,6 @@ async fn _non_ui_version() {
     let inputs: String = get_ids_from_user();
 
     query_api(&inputs, &artifacts).await;
-
-    // let ids : Vec<&str> = inputs.split_ascii_whitespace().collect();
-    // //let mut ids_len5: Vec<&str> = Vec::new();
-
-    // for id in ids {
-    //     if id.len() == 4 || id.len() == 6 {
-    //         match card_access(id).await {
-    //             Ok(card) => {
-    //                 check_and_write("card", Parsed::T(card)).await;
-    //             },
-    //             Err(err) => println!("{err:#?}"),
-    //         }
-    //     } 
-    //     else if id.len() == 5 {
-    //         if let Some(ref sets) = artifacts {
-    //             if sets.contains_key(id) {
-    //                 // artifact
-    //                 let artifact = sets.get(id).unwrap();
-    //                 let new_art = artifact_access(artifact, id).await;
-    //                 check_and_write("artifact", Parsed::A(new_art)).await;
-    //             } else {
-    //                 check_weapon(id).await;
-    //             }
-    //         } else {
-    //             check_weapon(id).await;
-    //         }
-    //         //ids_len5.push(id);
-    //     }
-    //     else {
-    //         let character = character_api_access(id).await;
-    //         check_and_write("character", Parsed::C(character)).await;
-    //         //println!("{:#?}", character);
-    //         //check_and_write_to_file(character).await;
-    //     }
-    // }
 }
 
 
