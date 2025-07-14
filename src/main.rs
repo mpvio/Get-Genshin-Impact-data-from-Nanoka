@@ -20,7 +20,7 @@ use api_funcs::{get_minimal_lists};
 // TODO: Clean up!
 #[tokio::main]
 async fn main() {
-    let artifacts = get_minimals().await;
+    let (_, _, _, artifacts) = get_minimals().await;
     let inputs: String = get_ids_from_user();
     let ids : Vec<&str> = inputs.split_ascii_whitespace().collect();
     //let mut ids_len5: Vec<&str> = Vec::new();
