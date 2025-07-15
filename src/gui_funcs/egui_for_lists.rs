@@ -1,5 +1,5 @@
 use eframe::egui;
-use egui::{Layout, ScrollArea, Ui};
+use egui::{Grid, Layout, ScrollArea, Ui};
 use tokio::runtime::Runtime;
 
 use crate::{api_funcs::get_item_funcs::query_api, base_models::hakushin_lists::MinimalArtifactMap, gui_funcs::display_lists::{get_names, ItemNames}};
@@ -10,7 +10,8 @@ pub struct HakuGIApp {
     cards: Vec<ItemNames>,
     artifacts: Vec<ItemNames>,
     query: String,
-    arts: Option<MinimalArtifactMap>
+    arts: Option<MinimalArtifactMap>,
+    outputs: Vec<String>
 }
 
 impl HakuGIApp {
@@ -28,7 +29,8 @@ impl HakuGIApp {
             cards,
             artifacts,
             query: String::new(),
-            arts
+            arts,
+            outputs: Vec::<String>::new()
         }
     }
 }
@@ -43,7 +45,8 @@ impl eframe::App for HakuGIApp {
                 &self.cards, 
                 &self.artifacts, 
                 &mut self.query, 
-                &self.arts
+                &self.arts,
+                &mut self.outputs
             );
         });
     }
@@ -57,6 +60,7 @@ pub fn show_names_on_ui(
     artifacts: &Vec<ItemNames>,
     query: &mut String,
     arts: &Option<MinimalArtifactMap>,
+    outputs: &mut Vec<String>
     //runtime: &mut Option<Runtime>
 ) {
     let min_height = 400.0;
@@ -127,25 +131,53 @@ pub fn show_names_on_ui(
             });
         });
         ui.separator();
-        ui.horizontal(|ui| {
-            ui.label("Enter ids to query:");
-            ui.text_edit_singleline(query);
-            if ui.button("Search").clicked() && !query.is_empty() {
 
-                // clone params to access async function
-                let query_clone = query.clone();
-                let arts_clone = arts.clone();
+        ui.with_layout(Layout::top_down(egui::Align::Center), |ui| {
+            // ui.horizontal(|ui| {
 
-                // create temporary thread to access async function
-                std::thread::spawn(move || {
-                    Runtime::new().unwrap().block_on(async {
-                        query_api(&query_clone, &arts_clone).await;
-                    })
+            // });
+
+            // get inputs, save outputs
+                ui.label("Enter ids to query:");
+                ui.text_edit_singleline(query);
+                if ui.button("Search").clicked() && !query.is_empty() {
+
+                    // clone params to access async function
+                    let query_clone = query.clone();
+                    let arts_clone = arts.clone();
+
+                    // create temporary thread to access async function
+                    let query_result = std::thread::spawn(move || {
+                        Runtime::new().unwrap().block_on(async {
+                            query_api(&query_clone, &arts_clone).await;
+                            String::from("todo: get actual outputs")
+                        })
+                    });
+
+                    // set text to null once queried
+                    query.clear();
+                    match query_result.join() {
+                        Ok(result) => {
+                            outputs.push(result);
+                        },
+                        Err(_) => {},
+                    }
+                };
+
+            // display results
+            ui.heading("Results:");
+            ui.horizontal(|ui| {
+                ui.set_min_height(min_height/2.0);
+                ScrollArea::vertical().id_salt("out").show(ui, |ui| {
+                    ui.with_layout(Layout::top_down(egui::Align::Center), |ui| {
+                        for o in outputs {
+                            ui.label(format!("{o}"));
+                        }
+                    });
                 });
-
-                // set text to null once queried
-                query.clear();
-            };
+            });
         });
+
+
     });
 }
