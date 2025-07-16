@@ -145,20 +145,21 @@ pub fn show_names_on_ui(
                     // clone params to access async function
                     let query_clone = query.clone();
                     let arts_clone = arts.clone();
+                    //let mut outputs_clone = outputs.clone();
 
                     // create temporary thread to access async function
                     let query_result = std::thread::spawn(move || {
                         Runtime::new().unwrap().block_on(async {
-                            query_api(&query_clone, &arts_clone).await;
-                            String::from("todo: get actual outputs")
+                            query_api(&query_clone, &arts_clone).await
+                            //String::from("todo: get actual outputs")
                         })
                     });
 
                     // set text to null once queried
                     query.clear();
                     match query_result.join() {
-                        Ok(result) => {
-                            outputs.push(result);
+                        Ok(mut result) => {
+                            outputs.append(&mut result);
                         },
                         Err(_) => {},
                     }
@@ -171,7 +172,9 @@ pub fn show_names_on_ui(
                 ScrollArea::vertical().id_salt("out").show(ui, |ui| {
                     ui.with_layout(Layout::top_down(egui::Align::Center), |ui| {
                         for o in outputs {
-                            ui.label(format!("{o}"));
+                            if !o.is_empty() {
+                                ui.label(format!("{o}"));
+                            }
                         }
                     });
                 });

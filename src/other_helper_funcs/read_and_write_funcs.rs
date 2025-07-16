@@ -1,3 +1,4 @@
+use std::fmt::write;
 use std::fs::create_dir_all;
 use std::path::Path;
 use std::{fs::File, io::{self, BufReader, Seek, SeekFrom}};
@@ -9,7 +10,7 @@ use serde_json::json;
 use serde_json_diff::Difference;
 use serde::{Serialize, Deserialize};
 
-fn write_diff_to_file(diffs: &Difference, name: &String, list: bool) {
+fn write_diff_to_file(diffs: &Difference, name: &String, list: bool) -> String {
     let date = chrono::Local::now().format("%y-%m-%d");
     let folders = if !list {"changes"} else {"list_changes"};
     create_dir_all(folders).unwrap();
@@ -44,16 +45,17 @@ fn write_diff_to_file(diffs: &Difference, name: &String, list: bool) {
     } else {
         println!("Failed to create file {}", title);
     }
+    title
 }
 
-async fn compare_items<T: serde::Serialize>(old: T, new: T, name: &String) -> bool {
+async fn compare_items<T: serde::Serialize>(old: T, new: T, name: &String) -> (bool, Option<String>) {
     match serde_json_diff::values(json!(old), json!(new)) {
         Some(diffs) => {
             //println!("found diff!");
-            write_diff_to_file(&diffs, &name, false);
-            true
+            let result = write_diff_to_file(&diffs, &name, false);
+            (true, Some(result))
         },
-        None => false,
+        None => (false, None),
     }
 }
 
@@ -73,11 +75,26 @@ async fn compare_characters(old_char : &ParsedCharacter, new_char : &ParsedChara
     }
 }
 
-pub async fn check_and_write(_category: &str, item: Parsed) {
+async fn compare_and_write<T: Serialize> (file: &mut File, old: &T, current: &T, name: &String, title: &String) -> Vec<String>{
+    let mut outcomes = Vec::<String>::new();
+    let (updated, update_result) = compare_items(old, current, name).await;
+    if updated {
+        let write_result = write_item_to_file(file, current, title, true);
+        outcomes.push(write_result);
+    }
+    if let Some(res) = update_result {
+        outcomes.push(res);
+    }
+    outcomes
+}
+
+pub async fn check_and_write(_category: &str, item: Parsed) -> Vec<String> {
     let folders = format!("results/{_category}");
     create_dir_all(&folders).unwrap();
+    let mut all_outcomes = Vec::<String>::new();
 
-    let title = format!("{}/{}.json", folders, item.name());
+    let name = item.name();
+    let title = format!("{}/{}.json", folders, &item.name());
     if let Ok(mut file) = File::options()
     .read(true)
     .write(true)
@@ -85,45 +102,38 @@ pub async fn check_and_write(_category: &str, item: Parsed) {
     .open(&title) {
         let reader = BufReader::new(&file);
         let old_content: Result<Parsed, serde_json::Error> = serde_json::from_reader(reader);
-        match old_content {
+        all_outcomes = match old_content {
             Ok(content) => {
-                let name = item.name();
+                //let name = item.name();
                 match (content, item) {
                     (Parsed::C(old), Parsed::C(current)) => {
-                        let updated = compare_items(&old, &current, &name).await;
-                        if updated {
-                            write_item_to_file(&mut file, &current, &title, true);
-                        }
+                        compare_and_write(&mut file, &old, &current, &name, &title).await
                     },
                     (Parsed::W(old), Parsed::W(current)) => {
-                        let updated = compare_items(&old, &current, &name).await;
-                        if updated {
-                            write_item_to_file(&mut file, &current, &title, true);
-                        }
+                        compare_and_write(&mut file, &old, &current, &name, &title).await
                     },
                     (Parsed::A(old), Parsed::A(current)) => {
-                        let updated = compare_items(&old, &current, &name).await;
-                        if updated {
-                            write_item_to_file(&mut file, &current, &title, true);
-                        }
+                        compare_and_write(&mut file, &old, &current, &name, &title).await
                     },
                     (Parsed::T(old), Parsed::T(current)) => {
-                        let updated = compare_items(&old, &current, &name).await;
-                        if updated {
-                            write_item_to_file(&mut file, &current, &title, true);
-                        }
+                        compare_and_write(&mut file, &old, &current, &name, &title).await
                     }
                     _ => {
                         // content & item aren't the same struct
+                        Vec::<String>::new()
                     }
                 }
             },
             Err(_) => {
                 // file didn't exist
-                write_item_to_file(&mut file, &item, &title, false);
+                let mut v = Vec::<String>::new();
+                v.push(write_item_to_file(&mut file, &item, &title, false));
+                v
             },
-        }
+        };
     }
+
+    all_outcomes
 }
 
 pub async fn check_and_write_to_file(character : ParsedCharacter){
@@ -208,20 +218,22 @@ pub async fn write_list_to_file<T: Serialize + for<'a> Deserialize<'a>>(name: &'
     }
 }
 
-pub fn write_item_to_file<T: serde::Serialize>(file: &mut File, item: &T, title: &String, update: bool) {
+pub fn write_item_to_file<T: serde::Serialize>(file: &mut File, item: &T, title: &String, update: bool) -> String {
     let _ = file.seek(SeekFrom::Start(0));
-    match serde_json::to_writer_pretty(file, &item) {
+    let result = match serde_json::to_writer_pretty(file, &item) {
         Ok(_) => {
             if update {
-                println!("{title} updated.");
+                format!("{title} updated.")
             } else {
-                println!("{title} created.");
+                format!("{title} created.")
             }
         },
         Err(err) => {
-            println!("{:#?}", err);
+            format!("{:#?}", err)
         },
-    }   
+    };
+    println!("{}", result);
+    result
 }
 
 pub fn write_character_to_file(file: &mut File, character: &ParsedCharacter, title: &String, update: bool){

@@ -9,16 +9,21 @@ use crate::{
     parsed_models::{ParsedArtifact, ParsedCard, ParsedCharacter, ParsedCharacterTCG, ParsedTalentTCG, ParsedWeapon}
 };
 
-pub async fn query_api(inputs: &String, artifacts: &Option<MinimalArtifactMap>) {
+pub async fn query_api(inputs: &String, artifacts: &Option<MinimalArtifactMap>) -> Vec<String> {
     let ids : Vec<&str> = inputs.split_ascii_whitespace().collect();
+    let mut results = Vec::<String>::new();
 
     for id in ids {
         if id.len() == 4 || id.len() == 6 {
             match card_access(id).await {
                 Ok(card) => {
-                    check_and_write("card", Parsed::T(card)).await;
+                    results.append(&mut check_and_write("card", Parsed::T(card)).await);
+                    //check_and_write("card", Parsed::T(card)).await;
                 },
-                Err(err) => println!("{err:#?}"),
+                Err(err) => {
+                    results.push(format!("{err:#?}"));
+                    println!("{err:#?}");
+                },
             }
         } 
         else if id.len() == 5 {
@@ -27,26 +32,34 @@ pub async fn query_api(inputs: &String, artifacts: &Option<MinimalArtifactMap>) 
                     // artifact
                     let artifact = sets.get(id).unwrap();
                     let new_art = artifact_access(artifact, id).await;
-                    check_and_write("artifact", Parsed::A(new_art)).await;
+                    results.append(&mut check_and_write("artifact", Parsed::A(new_art)).await);
+                    //check_and_write("artifact", Parsed::A(new_art)).await;
                 } else {
-                    check_weapon(id).await;
+                    results.append(&mut check_weapon(id).await);
                 }
             } else {
-                check_weapon(id).await;
+                results.append(&mut check_weapon(id).await);
             }
         }
         else {
             let character = character_api_access(id).await;
-            check_and_write("character", Parsed::C(character)).await;
+            results.append(&mut check_and_write("character", Parsed::C(character)).await);
         }
     }
+
+    results
 }
 
-async fn check_weapon(id: &str) {
+async fn check_weapon(id: &str) -> Vec<String> {
     let res = weapon_access(id).await;
     match res {
         Ok(weapon) => check_and_write("weapon", Parsed::W(weapon)).await,
-        Err(err) => println!("{err:#?}"),
+        Err(err) => {
+            let mut v = Vec::<String>::new();
+            v.push(format!("{err:#?}"));
+            println!("{err:#?}");
+            v
+        },
     } 
 }
 async fn artifact_access(artifact: &MinimalArtifact, key: &str) -> ParsedArtifact {
