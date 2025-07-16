@@ -5,7 +5,7 @@ use reqwest::Error;
 use crate::{
     base_models::{character::Character, hakushin_lists::{MinimalArtifact, MinimalArtifactMap}, tcg_cards::CharacterTCG, weapon::Weapon}, 
     character_funcs::{ascension_funcs::get_ascension_stat_option, material_funcs::parse_materials, skill_funcs::handle_skills}, 
-    other_helper_funcs::{helper_funcs::{accumulate_materials, compare_color_texts, Parsed}, read_and_write_funcs::check_and_write}, 
+    other_helper_funcs::{character_error::CharacterError, helper_funcs::{accumulate_materials, compare_color_texts, Parsed}, read_and_write_funcs::check_and_write}, 
     parsed_models::{ParsedArtifact, ParsedCard, ParsedCharacter, ParsedCharacterTCG, ParsedTalentTCG, ParsedWeapon}
 };
 
@@ -42,8 +42,15 @@ pub async fn query_api(inputs: &String, artifacts: &Option<MinimalArtifactMap>) 
             }
         }
         else {
-            let character = character_api_access(id).await;
-            results.append(&mut check_and_write("character", Parsed::C(character)).await);
+            match character_api_access(id).await {
+                Ok(character) => {
+                    results.append(&mut check_and_write("character", Parsed::C(character)).await);
+                },
+                Err(err) => {
+                    results.push(format!("{:#?}", err.message));
+                },
+            };
+            
         }
     }
 
@@ -158,7 +165,7 @@ async fn weapon_access(id: &str) -> Result<ParsedWeapon, Error>{
     panic!("API CALL FAILED");
 }
 
-async fn character_api_access(char_id : &str) -> ParsedCharacter {
+async fn character_api_access(char_id : &str) -> Result<ParsedCharacter, CharacterError> {
     let base_url = format!("https://api.hakush.in/gi/data/en/character/{}.json",char_id);
     //println!("CHARACTER");
 
@@ -196,21 +203,29 @@ async fn character_api_access(char_id : &str) -> ParsedCharacter {
                         talent_mats
                     };
 
-                    return complete_character;
+                    return Ok(complete_character);
                 } else {
                     //println!("JSON parsing failed.");
-                    panic!("JSON parsing failed.");
+                    return Err(CharacterError { 
+                        message: String::from("JSON parsing failed.")
+                    });
                 }
             } else {
                 //println!("Response not OK.");
-                panic!("Response not OK.");
+                return Err(CharacterError { 
+                    message: String::from("Response not OK.")
+                });
             }
         } else {
             //println!("No response.");
-            panic!("No response.");
+            return Err(CharacterError { 
+                message: String::from("No response.")
+            });
         }
     } else {
         //println!("URL get failed.");
-        panic!("URL get failed.");
+        return Err(CharacterError { 
+            message: String::from("URL get failed.")
+        });
     }
 }

@@ -1,5 +1,5 @@
 use eframe::egui;
-use egui::{Grid, Layout, ScrollArea, Ui};
+use egui::{Layout, ScrollArea, Ui};
 use tokio::runtime::Runtime;
 
 use crate::{api_funcs::get_item_funcs::query_api, base_models::hakushin_lists::MinimalArtifactMap, gui_funcs::display_lists::{get_names, ItemNames}};
