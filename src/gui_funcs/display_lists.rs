@@ -13,6 +13,27 @@ impl Default for ItemNames {
         Self { key: Default::default(), name: Default::default() }
     }
 }
+
+pub fn get_custom_name(item: &ItemNames) -> &str {
+    match item.key.as_str() {
+        "1506" => "Wanderer", // tcg card name
+        _ => &item.name,
+    }
+}
+
+pub fn filter_items<'a>(
+    items: &'a [ItemNames],
+    search_term: &'a str,
+) -> impl Iterator<Item = &'a ItemNames> + 'a {
+    let search_lower = search_term.to_lowercase();
+    
+    items.iter().filter(move |item| {
+        search_term.is_empty() ||
+        get_custom_name(item).to_lowercase().contains(&search_lower) ||
+        item.key.contains(search_term)
+    })
+}
+
 pub async fn get_names () -> (Vec<ItemNames>, Vec<ItemNames>, Vec<ItemNames>, Vec<ItemNames>, Option<MinimalArtifactMap>) {
     let (
         chars, 

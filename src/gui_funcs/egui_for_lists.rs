@@ -1,8 +1,8 @@
 use eframe::egui;
-use egui::{Layout, ScrollArea, Ui};
+use egui::{Layout, ScrollArea, TextEdit, Ui};
 use tokio::runtime::Runtime;
 
-use crate::{api_funcs::get_item_funcs::query_api, base_models::hakushin_lists::MinimalArtifactMap, gui_funcs::display_lists::{get_names, ItemNames}};
+use crate::{api_funcs::get_item_funcs::query_api, base_models::hakushin_lists::MinimalArtifactMap, gui_funcs::display_lists::{get_names, ItemNames, get_custom_name, filter_items}};
 
 pub struct HakuGIApp {
     characters: Vec<ItemNames>,
@@ -11,7 +11,11 @@ pub struct HakuGIApp {
     artifacts: Vec<ItemNames>,
     query: String,
     arts: Option<MinimalArtifactMap>,
-    outputs: Vec<String>
+    outputs: Vec<String>,
+    char_search: String,
+    weap_search: String,
+    arti_search: String,
+    card_search: String
 }
 
 impl HakuGIApp {
@@ -30,7 +34,11 @@ impl HakuGIApp {
             artifacts,
             query: String::new(),
             arts,
-            outputs: Vec::<String>::new()
+            outputs: Vec::<String>::new(),
+            char_search: String::new(),
+            weap_search: String::new(),
+            arti_search: String::new(),
+            card_search: String::new()
         }
     }
 }
@@ -46,7 +54,11 @@ impl eframe::App for HakuGIApp {
                 &self.artifacts, 
                 &mut self.query, 
                 &self.arts,
-                &mut self.outputs
+                &mut self.outputs,
+                &mut self.char_search,
+                &mut self.weap_search,
+                &mut self.arti_search,
+                &mut self.card_search
             );
         });
     }
@@ -60,7 +72,11 @@ pub fn show_names_on_ui(
     artifacts: &Vec<ItemNames>,
     query: &mut String,
     arts: &Option<MinimalArtifactMap>,
-    outputs: &mut Vec<String>
+    outputs: &mut Vec<String>,
+    char_search: &mut String,
+    weap_search: &mut String,
+    arti_search: &mut String,
+    card_search: &mut String
     //runtime: &mut Option<Runtime>
 ) {
     let min_height = 400.0;
@@ -72,59 +88,80 @@ pub fn show_names_on_ui(
         ui.horizontal(|ui| {
             // each component within ui.vertical will display one on top of the other
             ui.vertical(|ui| {
-                ui.heading("Characters");
+                //title and search bar
+                let heading = ui.heading("Characters");
+                ui.add(
+                    TextEdit::singleline(char_search)
+                    .hint_text("Search")
+                    .min_size(egui::vec2(heading.rect.width(), 0.0))
+                );
                 ui.set_min_height(min_height);
                 ui.set_min_width(min_width);
                 // defines a separate scroll area with unique id
                 // scrolling here doesn't scroll other panels
                 ScrollArea::vertical().id_salt("ch").show(ui, |ui| {
                     ui.with_layout(Layout::top_down(egui::Align::LEFT), |ui|{
-                        for item in characters {
-                            ui.label(format!("{:<10}: {:<20}", item.key, item.name));
+                        for item in filter_items(&characters, &char_search) {
+                            ui.label(format!("{:<10}: {:<20}", item.key, get_custom_name(item)));
                         }
                     });
-                });
+                }); //.inner_rect.width()
             });
             ui.separator();
             ui.vertical(|ui| {
-                ui.heading("Weapons");
+                let heading = ui.heading("Weapons");
+                ui.add(
+                    TextEdit::singleline(weap_search)
+                    .hint_text("Search")
+                    .min_size(egui::vec2(heading.rect.width(), 0.0))
+                );
                 ui.set_min_height(min_height);
                 ui.set_min_width(min_width);
                 ScrollArea::vertical().id_salt("we").show(ui, |ui| {
                     ui.with_layout(Layout::top_down(egui::Align::LEFT), |ui|{
-                        for item in weapons {
-                            ui.label(format!("{:<6}: {:<25}", item.key, item.name));
+                        for item in filter_items(&weapons, &weap_search) {
+                            ui.label(format!("{:<6}: {:<25}", item.key, get_custom_name(item)));
                         }
                     });
                 });
             });
             ui.separator();
             ui.vertical(|ui| {
-                ui.heading("Artifacts");
+                // header + search bar
+                let heading = ui.heading("Artifacts");
+                ui.add(
+                    TextEdit::singleline(arti_search)
+                    .hint_text("Search")
+                    .min_size(egui::vec2(heading.rect.width(), 0.0))
+                );
+
                 ui.set_min_height(min_height);
                 ui.set_min_width(min_width);
                 ScrollArea::vertical().id_salt("ar").show(ui, |ui| {
                     ui.with_layout(Layout::top_down(egui::Align::LEFT), |ui|{
-                        for item in artifacts {
-                            ui.label(format!("{:<5}: {:<25}", item.key, item.name));
+                        for item in filter_items(&artifacts, &arti_search) {
+                            ui.label(format!("{:<5}: {:<25}", item.key, get_custom_name(item)));
                         }
                     });
                 });
             });
             ui.separator();
             ui.vertical(|ui| {
-                ui.heading("Cards");
+                // header + search bar
+                let heading = ui.heading("Cards");
+                ui.add(
+                    TextEdit::singleline(arti_search)
+                    .hint_text("Search")
+                    .min_size(egui::vec2(
+                        heading.rect.width(), 0.0))
+                );
+
                 ui.set_min_height(min_height);
                 ui.set_min_width(min_width);
                 ScrollArea::vertical().id_salt("ca").show(ui, |ui| {
                     ui.with_layout(Layout::top_down(egui::Align::LEFT), |ui|{
-                        for item in cards {
-                            let name = if item.key == "1506" {
-                                "Wanderer"
-                            } else {
-                                &item.name
-                            };
-                            ui.label(format!("{:<6}: {:<25}", item.key, name));
+                        for item in filter_items(&cards, &card_search) {
+                            ui.label(format!("{:<6}: {:<25}", item.key, get_custom_name(item)));
                         }
                     });
                 });
