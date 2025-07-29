@@ -25,7 +25,7 @@ async fn main() {
 async fn show_ui() {
     let app = HakuGIApp::new().await;
     let options = eframe::NativeOptions {
-        viewport: ViewportBuilder::default().with_inner_size([1300.0, 700.0]),
+        viewport: ViewportBuilder::default().with_inner_size([1220.0, 700.0]),
         ..Default::default()
     };
 

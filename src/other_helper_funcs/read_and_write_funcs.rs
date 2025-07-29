@@ -84,6 +84,9 @@ async fn compare_and_write<T: Serialize> (file: &mut File, old: &T, current: &T,
     if let Some(res) = update_result {
         outcomes.push(res);
     }
+    if outcomes.is_empty() {
+        outcomes.push(format!("{title} unchanged."));
+    }
     outcomes
 }
 

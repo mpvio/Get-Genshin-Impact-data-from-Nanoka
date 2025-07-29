@@ -14,11 +14,31 @@ impl Default for ItemNames {
     }
 }
 
-pub fn get_custom_name(item: &ItemNames) -> &str {
-    match item.key.as_str() {
+pub fn get_custom_name(item: &ItemNames) -> String {
+    get_custom_name_from_id(item.key.as_str(), &item.name)
+}
+
+pub fn get_custom_name_from_id<'a>(id: &'a str, name: &'a String) -> String {
+    let new_name = match id {
+        "10000007-2" | "10000005-2" => "Traveler Pyro",
+        "10000007-3" | "10000005-3" => "Traveler Hydro",
+        "10000007-4" | "10000005-4" => "Traveler Anemo",
+        "10000007-6" | "10000005-6" => "Traveler Geo",
+        "10000007-7" | "10000005-7" => "Traveler Electro",
+        "10000007-8" | "10000005-8" => "Traveler Dendro",
         "1506" => "Wanderer", // tcg card name
-        _ => &item.name,
-    }
+        _ => name.as_str(),
+    };
+    let gender = if id.contains("10000007") {
+        " (F)"
+    } else if id.contains("10000005") {
+        " (M)"
+    } else {
+        ""
+    };
+    let mut name_string = new_name.to_owned();
+    name_string.push_str(gender);
+    name_string
 }
 
 pub fn filter_items<'a>(

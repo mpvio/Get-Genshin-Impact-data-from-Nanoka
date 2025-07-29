@@ -89,91 +89,91 @@ pub fn show_names_on_ui(
             // each component within ui.vertical will display one on top of the other
             ui.vertical(|ui| {
                 //title and search bar
-                let heading = ui.heading("Characters");
+                let _heading = ui.heading("Characters");
                 ui.add(
                     TextEdit::singleline(char_search)
                     .hint_text("Search")
-                    .min_size(egui::vec2(heading.rect.width(), 0.0))
+                    .min_size(egui::vec2(40.0, 0.0))
                 );
                 ui.set_min_height(min_height);
                 ui.set_min_width(min_width);
                 // defines a separate scroll area with unique id
                 // scrolling here doesn't scroll other panels
-                ScrollArea::vertical().id_salt("ch").show(ui, |ui| {
+                let _ch_scroll = ScrollArea::vertical().id_salt("ch").show(ui, |ui| {
                     ui.with_layout(Layout::top_down(egui::Align::LEFT), |ui|{
                         for item in filter_items(&characters, &char_search) {
                             ui.label(format!("{:<10}: {:<20}", item.key, get_custom_name(item)));
                         }
                     });
-                }); //.inner_rect.width()
+                });
+                //print!("({}, {}) ", _heading.rect.width(), _ch_scroll.inner_rect.width());
             });
             ui.separator();
             ui.vertical(|ui| {
-                let heading = ui.heading("Weapons");
+                let _heading = ui.heading("Weapons");
                 ui.add(
                     TextEdit::singleline(weap_search)
                     .hint_text("Search")
-                    .min_size(egui::vec2(heading.rect.width(), 0.0))
+                    .min_size(egui::vec2(40.0, 0.0))
                 );
                 ui.set_min_height(min_height);
                 ui.set_min_width(min_width);
-                ScrollArea::vertical().id_salt("we").show(ui, |ui| {
+                let _we_scroll = ScrollArea::vertical().id_salt("we").show(ui, |ui| {
                     ui.with_layout(Layout::top_down(egui::Align::LEFT), |ui|{
                         for item in filter_items(&weapons, &weap_search) {
                             ui.label(format!("{:<6}: {:<25}", item.key, get_custom_name(item)));
                         }
                     });
                 });
+                //print!("({}, {}) ", heading.rect.width(), we_scroll.inner_rect.width());
             });
             ui.separator();
             ui.vertical(|ui| {
                 // header + search bar
-                let heading = ui.heading("Artifacts");
+                let _heading = ui.heading("Artifacts");
                 ui.add(
                     TextEdit::singleline(arti_search)
                     .hint_text("Search")
-                    .min_size(egui::vec2(heading.rect.width(), 0.0))
+                    .min_size(egui::vec2(40.0, 0.0))
                 );
 
                 ui.set_min_height(min_height);
                 ui.set_min_width(min_width);
-                ScrollArea::vertical().id_salt("ar").show(ui, |ui| {
+                let _ar_scroll = ScrollArea::vertical().id_salt("ar").show(ui, |ui| {
                     ui.with_layout(Layout::top_down(egui::Align::LEFT), |ui|{
                         for item in filter_items(&artifacts, &arti_search) {
                             ui.label(format!("{:<5}: {:<25}", item.key, get_custom_name(item)));
                         }
                     });
                 });
+                //print!("({}, {}) ", heading.rect.width(), ar_scroll.inner_rect.width());
             });
             ui.separator();
             ui.vertical(|ui| {
                 // header + search bar
-                let heading = ui.heading("Cards");
+                let _heading = ui.heading("Cards");
                 ui.add(
                     TextEdit::singleline(arti_search)
                     .hint_text("Search")
-                    .min_size(egui::vec2(
-                        heading.rect.width(), 0.0))
+                    .min_size(egui::vec2(40.0, 0.0))
                 );
 
                 ui.set_min_height(min_height);
                 ui.set_min_width(min_width);
-                ScrollArea::vertical().id_salt("ca").show(ui, |ui| {
+                let _ca_scroll = ScrollArea::vertical().id_salt("ca").show(ui, |ui| {
                     ui.with_layout(Layout::top_down(egui::Align::LEFT), |ui|{
                         for item in filter_items(&cards, &card_search) {
                             ui.label(format!("{:<6}: {:<25}", item.key, get_custom_name(item)));
                         }
                     });
                 });
+                
+                //println!("({}, {})", heading.rect.width(), ca_scroll.inner_rect.width());
             });
         });
         ui.separator();
 
         ui.with_layout(Layout::top_down(egui::Align::Center), |ui| {
-            // ui.horizontal(|ui| {
-
-            // });
-
             // get inputs, save outputs
                 ui.label("Enter ids to query:");
                 ui.text_edit_singleline(query);

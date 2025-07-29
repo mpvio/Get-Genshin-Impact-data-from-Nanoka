@@ -3,10 +3,7 @@ use std::collections::BTreeMap;
 use reqwest::Error;
 
 use crate::{
-    base_models::{character::Character, hakushin_lists::{MinimalArtifact, MinimalArtifactMap}, tcg_cards::CharacterTCG, weapon::Weapon}, 
-    character_funcs::{ascension_funcs::get_ascension_stat_option, material_funcs::parse_materials, skill_funcs::handle_skills}, 
-    other_helper_funcs::{character_error::CharacterError, helper_funcs::{accumulate_materials, compare_color_texts, Parsed}, read_and_write_funcs::check_and_write}, 
-    parsed_models::{ParsedArtifact, ParsedCard, ParsedCharacter, ParsedCharacterTCG, ParsedTalentTCG, ParsedWeapon}
+    base_models::{character::Character, hakushin_lists::{MinimalArtifact, MinimalArtifactMap}, tcg_cards::CharacterTCG, weapon::Weapon}, character_funcs::{ascension_funcs::get_ascension_stat_option, material_funcs::parse_materials, skill_funcs::handle_skills}, gui_funcs::display_lists::get_custom_name_from_id, other_helper_funcs::{character_error::CharacterError, helper_funcs::{accumulate_materials, compare_color_texts, Parsed}, read_and_write_funcs::check_and_write}, parsed_models::{ParsedArtifact, ParsedCard, ParsedCharacter, ParsedCharacterTCG, ParsedTalentTCG, ParsedWeapon}
 };
 
 pub async fn query_api(inputs: &String, artifacts: &Option<MinimalArtifactMap>) -> Vec<String> {
@@ -106,7 +103,7 @@ async fn card_access(id: &str) -> Result<ParsedCard, Error> {
 
             let parsed_card = if card_type == "Character" {
                     ParsedCard::Character(ParsedCharacterTCG {
-                        name: card.name,
+                        name: get_custom_name_from_id(id, &card.name),
                         card_type: card.card_type,
                         hp: card.hp.unwrap(),
                         cost: card.cost.character().unwrap(), // u8
@@ -115,7 +112,7 @@ async fn card_access(id: &str) -> Result<ParsedCard, Error> {
                     })
             } else {
                     ParsedCard::Talent(ParsedTalentTCG {
-                        name: card.name,
+                        name: get_custom_name_from_id(id, &card.name),
                         card_type: card.card_type,
                         cost: card.cost.talent().unwrap().to_vec(), // Vec<TalentTCGCost>
                         tag: card.tag,
@@ -150,7 +147,7 @@ async fn weapon_access(id: &str) -> Result<ParsedWeapon, Error>{
             let mats = accumulate_materials(&weapon.materials);
 
             let parsed_weapon = ParsedWeapon {
-                name: weapon.name,
+                name: weapon.name, // get_custom_name_alt(id, &weapon.name)
                 weapon_type: weapon.weapon_type,
                 rarity: weapon.rarity,
                 substat: weapon.weapon_prop.last().unwrap().prop_type.clone(),
@@ -191,7 +188,7 @@ async fn character_api_access(char_id : &str) -> Result<ParsedCharacter, Charact
                     passives.sort_by(|a, b| a.unlock.cmp(&b.unlock));
 
                     let complete_character = ParsedCharacter {
-                        name: result.name,
+                        name: get_custom_name_from_id(char_id, &result.name),
                         vision: result.chara_info.vision,
                         weapon: result.weapon,
                         rarity: result.rarity,
