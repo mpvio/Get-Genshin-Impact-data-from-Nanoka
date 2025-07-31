@@ -73,8 +73,8 @@ pub fn clean_text_colon(input: &str, keep_colon: bool) -> String {
 }
 
 pub fn compare_color_texts(text1: &str, text2: &str) -> String {
-    let re = Regex::new(r"(.*?)(<color=#[0-9A-Fa-f]{8}>([^<]*)</color>|$)").unwrap();
-    
+    // regex to capture numbers and trailing non-numeric characters SEPARATELY
+    let re = Regex::new(r"(.*?)(<color=#[0-9A-Fa-f]{8}>(\d+)([^0-9]*)</color>|$)").unwrap();
     let mut captures1 = re.captures_iter(text1);
     let mut captures2 = re.captures_iter(text2);
     let mut result = String::new();
@@ -82,31 +82,37 @@ pub fn compare_color_texts(text1: &str, text2: &str) -> String {
     loop {
         let (cap1, cap2) = (captures1.next(), captures2.next());
         
-        // Both texts exhausted
         if cap1.is_none() && cap2.is_none() {
             break;
         }
         
         match (cap1, cap2) {
             (Some(c1), Some(c2)) => {
-                // Compare non-colored text
+                // Handle non-colored text
                 let plain1 = c1.get(1).unwrap().as_str();
                 let plain2 = c2.get(1).unwrap().as_str();
                 
                 if plain1 != plain2 {
-                    panic!("Text structure differs between inputs");
+                    println!("Text structure differs between inputs");
+                    println!("{plain1:#?}");
+                    println!("{plain2:#?}");
                 }
                 result.push_str(plain1);
                 
-                // Handle colored content if present
+                // Handle colored content
                 if let (Some(color1), Some(color2)) = (c1.get(3), c2.get(3)) {
-                    let content1 = color1.as_str();
-                    let content2 = color2.as_str();
+                    let num1 = color1.as_str();
+                    let num2 = color2.as_str();
+                    let suffix1 = c1.get(4).map(|m| m.as_str()).unwrap_or("");
+                    let suffix2 = c2.get(4).map(|m| m.as_str()).unwrap_or("");
                     
-                    if content1 == content2 {
-                        result.push_str(content1);
+                    if num1 == num2 && suffix1 == suffix2 {
+                        result.push_str(num1);
+                        result.push_str(suffix1);
                     } else {
-                        result.push_str(&format!("[{}|{}]", content1, content2));
+                        // Only include suffix if both have the same one
+                        let common_suffix = if suffix1 == suffix2 { suffix1 } else { "" };
+                        result.push_str(&format!("[{}|{}]{}", num1, num2, common_suffix));
                     }
                 }
             },
