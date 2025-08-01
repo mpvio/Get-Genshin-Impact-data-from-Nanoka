@@ -193,9 +193,11 @@ impl TCGTalentEffect {
         let space_re = Regex::new(r"\s+").unwrap();
         let final_desc = space_re.replace_all(&with_spaces, " ").trim().to_string();
 
+        let (clean_text, _terms) = clean_text_colon(&final_desc, false);
+
         ParsedTCGTalent {
             name: self.name.clone(),
-            desc: clean_text_colon(&final_desc, false) // not sure why technique descs aren't already clean?
+            desc: clean_text // not sure why technique descs aren't already clean?
         }
     }
 }

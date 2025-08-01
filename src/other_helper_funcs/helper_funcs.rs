@@ -34,42 +34,48 @@ impl Parsed {
     }
 }
 
-pub fn clean_text(input: &str) -> String {
-    return clean_text_colon(input, true);
+pub fn clean_text(input: &str) -> (String, Vec<String>) {
+    return clean_text_colon(input, false);
 }
 
-pub fn clean_text_colon(input: &str, keep_colon: bool) -> String {
-    // Replace </color> with :
-    let close_color_re = Regex::new(r"</color>").unwrap();
-    let replacement : &'static str = if keep_colon { ":" } else { "" };
-    let with_colons = close_color_re.replace_all(input, replacement);
+pub fn clean_text_colon(input: &str, keep_colon: bool) -> (String, Vec<String>) {
+    // Regex to capture LINK numbers and contents
+    let link_re = Regex::new(r"\{LINK#(N\d+)\}(.*?)\{/LINK\}").unwrap();
+    let mut link_numbers = Vec::new();
+    
+    // Process the text while capturing LINK numbers
+    let processed_text = link_re.replace_all(input, |caps: &regex::Captures| {
+        let link_num = caps.get(1).unwrap().as_str().trim_start_matches('N');
+        let content = caps.get(2).unwrap().as_str();
+        link_numbers.push(link_num.to_string());
+        String::from(content) // Keep the content in the text (only remove the LINK tags)
+    }).to_string();
 
-    // Remove opening color tags
+    // Now clean the text (including the preserved LINK contents)
+    let close_color_re = Regex::new(r"</color>").unwrap();
+    let replacement = if keep_colon { ":" } else { "" };
+    let with_colons = close_color_re.replace_all(&processed_text, replacement);
+
     let open_color_re = Regex::new(r"<color=[^>]*>").unwrap();
     let without_colors = open_color_re.replace_all(&with_colons, "");
 
-    // Remove <i> tags and their content
     let italic_tag_re = Regex::new(r"<i>.*?</i>").unwrap();
     let without_italics = italic_tag_re.replace_all(&without_colors, "");
 
-    // Replace newlines with spaces (handling both \n and \\n)
     let newline_re = Regex::new(r"\\n|\n").unwrap();
     let with_spaces = newline_re.replace_all(&without_italics, " ");
 
-    // Collapse multiple spaces into one and trim
     let space_re = Regex::new(r"\s+").unwrap();
     let cleaned = space_re.replace_all(&with_spaces, " ");
 
-    // Remove SPRITE tag (for TCG cards)
-    if keep_colon {
+    let final_text = if keep_colon {
         cleaned.trim().to_string()
     } else {
         let sprite_re = Regex::new(r"\{SPRITE_PRESET#[^>]*\}").unwrap();
-        let ready = sprite_re.replace_all(&cleaned, "").trim().to_string();
+        sprite_re.replace_all(&cleaned, "").trim().to_string()
+    };
 
-        ready
-    }
-
+    (final_text, link_numbers)
 }
 
 pub fn compare_color_texts(text1: &str, text2: &str) -> String {

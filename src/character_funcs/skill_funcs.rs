@@ -10,21 +10,23 @@ pub enum OneValOrTwo {
     OneTen((f64, f64))
 }
 
-pub fn handle_skills<'a>(skills : &'a Vec<Skill>) -> Vec<ParsedSkill> {
+pub fn handle_skills<'a>(skills : &'a Vec<Skill>) -> (Vec<ParsedSkill>, Vec<String>) {
     let mut better_skills : Vec<ParsedSkill> = Vec::new();
+    let mut terms: Vec<String> = vec![];
     for skill in skills {
         //let (param_list, param_values) = handle_stats_trim(&skill.promote);
         //let str_list_converted_to_string = param_list.iter().map(|&z| z.to_string()).collect();
+        let (desc, mut key_terms) = clean_text(&skill.desc);
         let x = ParsedSkill {
             name: skill.name.clone(),
-            desc: clean_text(&skill.desc),
+            desc,
             parameters: handle_stats_trim_regex(&skill.promote),
             //param_values
         };
         better_skills.push(x);
+        terms.append(&mut key_terms);
     }
-
-    return better_skills;
+    return (better_skills, terms);
 }
 
 fn handle_stats_trim_regex<'a>(skill : &'a Promote) -> Vec<String> {

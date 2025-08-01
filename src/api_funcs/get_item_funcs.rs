@@ -3,12 +3,14 @@ use std::collections::BTreeMap;
 use reqwest::Error;
 
 use crate::{
-    base_models::{character::Character, hakushin_lists::{MinimalArtifact, MinimalArtifactMap}, tcg_cards::CharacterTCG, weapon::Weapon}, character_funcs::{ascension_funcs::get_ascension_stat_option, material_funcs::parse_materials, skill_funcs::handle_skills}, gui_funcs::display_lists::get_custom_name_from_id, other_helper_funcs::{character_error::CharacterError, helper_funcs::{accumulate_materials, compare_color_texts, Parsed}, read_and_write_funcs::check_and_write}, parsed_models::{ParsedArtifact, ParsedCard, ParsedCharacter, ParsedCharacterTCG, ParsedTalentTCG, ParsedWeapon}
+    base_models::{character::Character, hakushin_lists::{MinimalArtifact, MinimalArtifactMap}, tcg_cards::CharacterTCG, terms::TermMap, weapon::Weapon}, character_funcs::{ascension_funcs::get_ascension_stat_option, material_funcs::parse_materials, skill_funcs::handle_skills}, gui_funcs::display_lists::get_custom_name_from_id, other_helper_funcs::{character_error::CharacterError, helper_funcs::{accumulate_materials, clean_text_colon, compare_color_texts, Parsed}, read_and_write_funcs::check_and_write}, parsed_models::{ParsedArtifact, ParsedCard, ParsedCharacter, ParsedCharacterTCG, ParsedTalentTCG, ParsedWeapon}
 };
 
 pub async fn query_api(inputs: &String, artifacts: &Option<MinimalArtifactMap>) -> Vec<String> {
     let ids : Vec<&str> = inputs.split_ascii_whitespace().collect();
     let mut results = Vec::<String>::new();
+    let mut terms: Option<TermMap> = None;
+    let mut tried_terms = false;
 
     for id in ids {
         if id.len() == 4 || id.len() == 6 {
@@ -39,7 +41,11 @@ pub async fn query_api(inputs: &String, artifacts: &Option<MinimalArtifactMap>) 
             }
         }
         else {
-            match character_api_access(id).await {
+            if !tried_terms {
+                terms = get_all_terms().await;
+                tried_terms = true;
+            }
+            match character_api_access(id, &terms).await {
                 Ok(character) => {
                     results.append(&mut check_and_write("character", Parsed::C(character)).await);
                 },
@@ -162,7 +168,7 @@ async fn weapon_access(id: &str) -> Result<ParsedWeapon, Error>{
     panic!("API CALL FAILED");
 }
 
-async fn character_api_access(char_id : &str) -> Result<ParsedCharacter, CharacterError> {
+async fn character_api_access(char_id : &str, all_terms: &Option<TermMap>) -> Result<ParsedCharacter, CharacterError> {
     let base_url = format!("https://api.hakush.in/gi/data/en/character/{}.json",char_id);
     //println!("CHARACTER");
 
@@ -178,7 +184,20 @@ async fn character_api_access(char_id : &str) -> Result<ParsedCharacter, Charact
                     //println!("{ascension_stat}");
 
                     //parse skills for point breakdowns [or just remove "" and 0.0s?]
-                    let skills = handle_skills(&result.skills);
+                    let (skills, terms) = handle_skills(&result.skills);
+
+                    // add terms
+                    let term_descs = if let Some(t) = all_terms {
+                        let outcome = get_specific_terms(t, &terms);
+                        if outcome.is_empty() {
+                            None
+                        } else {
+                            Some(outcome)
+                        }
+                    } else {
+                        None
+                    };
+                    println!("{term_descs:#?}");
 
                     //get material list - Ascension [1 vec] AND Talents [1 per skill]
                     let (ascension_mats, talent_mats) = parse_materials(&result.materials);
@@ -197,7 +216,8 @@ async fn character_api_access(char_id : &str) -> Result<ParsedCharacter, Charact
                         passives,
                         constellations: result.constellations,
                         ascension_mats,
-                        talent_mats
+                        talent_mats,
+                        term_descs
                     };
 
                     return Ok(complete_character);
@@ -225,4 +245,28 @@ async fn character_api_access(char_id : &str) -> Result<ParsedCharacter, Charact
             message: String::from("URL get failed.")
         });
     }
+}
+
+async fn get_all_terms() -> Option<TermMap> {
+    let url = "https://api.hakush.in/gi/5.8.50/en/hyperlink.json";
+    let response = reqwest::get(url).await.ok()?;
+    let term_map = response.json::<TermMap>().await.ok()?;
+    return Some(term_map);
+}
+
+fn get_specific_terms(all_terms: &TermMap, terms: &Vec<String>) -> BTreeMap<String, String> {
+    let mut relevant_terms = BTreeMap::<String, String>::new();
+    for term in terms {
+        if let Some(res) = all_terms.get(term) {
+            let (clean_desc, more_terms) = clean_text_colon(&res.desc, false);
+            // add currently searched term to relevant_terms
+            relevant_terms.insert(res.name.clone(), clean_desc);
+            // if the term itself uses other terms, look for them recursively and add them to THIS relevant_terms
+            if !more_terms.is_empty() {
+                let mut nested_terms = get_specific_terms(all_terms, &more_terms);
+                relevant_terms.append(&mut nested_terms);
+            }
+        }
+    }
+    return relevant_terms;
 }

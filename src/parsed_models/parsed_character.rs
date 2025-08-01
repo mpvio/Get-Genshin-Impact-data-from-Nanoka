@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 
@@ -15,7 +17,9 @@ pub struct ParsedCharacter {
     pub passives: Vec<Passive>,
     pub constellations: Vec<Constellation>,
     pub ascension_mats: Vec<ParsedMaterial>,
-    pub talent_mats: Vec<ParsedMaterial>
+    pub talent_mats: Vec<ParsedMaterial>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub term_descs: Option<BTreeMap<String, String>>
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
