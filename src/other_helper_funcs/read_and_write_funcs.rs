@@ -4,7 +4,6 @@ use std::{fs::File, io::{self, BufReader, Seek, SeekFrom}};
 
 use crate::{hakushin_lists::MinimalNameMap, parsed_models::ParsedCharacter};
 use crate::helper_funcs::Parsed;
-
 use serde_json::json;
 use serde_json_diff::Difference;
 use serde::{Serialize, Deserialize};
@@ -45,6 +44,85 @@ fn write_diff_to_file(diffs: &Difference, name: &String, list: bool) -> String {
         println!("Failed to create file {}", title);
     }
     title
+}
+
+fn _get_better_diffs(diffs: &Difference) {
+    match diffs {
+        Difference::Scalar(scalar_difference) => {
+            match scalar_difference {
+                serde_json_diff::ScalarDifference::Bool { source, target } => {},
+                serde_json_diff::ScalarDifference::String { source, target } => {},
+                serde_json_diff::ScalarDifference::Number { source, target } => {},
+            }
+            /*
+            call the other difference crate to get inline diffs
+            pub enum ScalarDifference {
+                Bool {
+                    source: bool,
+                    target: bool,
+                },
+                String {
+                    source: String,
+                    target: String,
+                },
+                Number {
+                    source: serde_json::Number,
+                    target: serde_json::Number,
+                },
+            }
+             */
+        },
+        Difference::Type { source_type, target_type, target_value } => {
+            // do nothing
+        },
+        Difference::Array(array_difference) => {
+            // call this function recursively on all Differences present
+            match array_difference {
+                serde_json_diff::ArrayDifference::PairsOnly { different_pairs } => {},
+                serde_json_diff::ArrayDifference::Shorter { different_pairs, missing_elements } => {},
+                serde_json_diff::ArrayDifference::Longer { different_pairs, extra_length } => {},
+            }
+            /*
+            pub enum ArrayDifference {
+                /// `source` and `target` are the same length, but some values of the same indices are different
+                PairsOnly {
+                    /// differing pairs that appear in the overlapping indices of `source` and `target`
+                    different_pairs: DumbMap<usize, Difference>,
+                },
+                /// `source` is shorter than `target`
+                Shorter {
+                    /// differing pairs that appear in the overlapping indices of `source` and `target`
+                    different_pairs: Option<DumbMap<usize, Difference>>,
+                    /// elements missing in `source` that appear in `target`
+                    missing_elements: Vec<serde_json::Value>,
+                },
+                /// `source` is longer than `target`
+                Longer {
+                    /// differing pairs that appear in the overlapping indices of `source` and `target`
+                    different_pairs: Option<DumbMap<usize, Difference>>,
+                    /// The amount of extra elements `source` has that `target` does not
+                    extra_length: usize,
+                },
+}
+             */
+        },
+        Difference::Object { different_entries } => {
+            // call function on all differences
+            let de = &different_entries.0;
+            for (key, value) in de {
+                /*
+                pub enum EntryDifference {
+                    /// An entry from `target` that `source` is missing
+                    Missing { value: serde_json::Value },
+                    /// An entry that `source` has, and `target` doesn't
+                    Extra,
+                    /// The entry exists in both JSONs, but the values are different
+                    Value { value_diff: Difference },
+                }
+                 */
+            }
+        },
+    }
 }
 
 async fn compare_items<T: serde::Serialize>(old: T, new: T, name: &String) -> (bool, Option<String>) {
@@ -221,6 +299,7 @@ pub async fn write_list_to_file<T: Serialize + for<'a> Deserialize<'a>>(name: &'
 }
 
 pub fn write_item_to_file<T: serde::Serialize>(file: &mut File, item: &T, title: &String, update: bool) -> String {
+    let _ = file.set_len(0); // remove contents of file before writing to it
     let _ = file.seek(SeekFrom::Start(0));
     let result = match serde_json::to_writer_pretty(file, &item) {
         Ok(_) => {

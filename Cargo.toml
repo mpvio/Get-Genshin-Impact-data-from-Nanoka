@@ -16,3 +16,4 @@ regex = "1.10.6"
 serde_json_diff = "0.2.0"
 egui = "0.32.0"
 eframe = "0.32.0"
+structdiff = {version = "0.7.3", features = ["debug_diffs"]}
