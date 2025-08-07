@@ -197,7 +197,6 @@ async fn character_api_access(char_id : &str, all_terms: &Option<TermMap>) -> Re
                     } else {
                         None
                     };
-                    println!("{term_descs:#?}");
 
                     //get material list - Ascension [1 vec] AND Talents [1 per skill]
                     let (ascension_mats, talent_mats) = parse_materials(&result.materials);
