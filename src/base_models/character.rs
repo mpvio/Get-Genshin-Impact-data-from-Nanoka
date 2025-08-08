@@ -93,6 +93,23 @@ pub struct Constellation {
     pub desc: String
 }
 
+// define "has desc" trait to reuse cleaning function for passive & constellation:
+pub trait HasDescription {
+    fn description(&mut self) -> &mut String;
+}
+
+impl HasDescription for Passive {
+    fn description(&mut self) -> &mut String {
+        &mut self.desc
+    }
+}
+
+impl HasDescription for Constellation {
+    fn description(&mut self) -> &mut String {
+        &mut self.desc
+    }
+}
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Materials {

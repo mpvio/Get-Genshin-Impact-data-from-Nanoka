@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use reqwest::Error;
 
 use crate::{
-    base_models::{character::Character, hakushin_lists::{MinimalArtifact, MinimalArtifactMap}, tcg_cards::CharacterTCG, terms::TermMap, weapon::Weapon}, character_funcs::{ascension_funcs::get_ascension_stat_option, material_funcs::parse_materials, skill_funcs::handle_skills}, gui_funcs::display_lists::get_custom_name_from_id, other_helper_funcs::{character_error::CharacterError, helper_funcs::{accumulate_materials, clean_text_colon, compare_color_texts, Parsed}, read_and_write_funcs::check_and_write}, parsed_models::{ParsedArtifact, ParsedCard, ParsedCharacter, ParsedCharacterTCG, ParsedTalentTCG, ParsedWeapon}
+    base_models::{character::{Character, Constellation, HasDescription, Passive}, hakushin_lists::{MinimalArtifact, MinimalArtifactMap}, tcg_cards::CharacterTCG, terms::TermMap, weapon::Weapon}, character_funcs::{ascension_funcs::get_ascension_stat_option, material_funcs::parse_materials, skill_funcs::handle_skills}, gui_funcs::display_lists::get_custom_name_from_id, other_helper_funcs::{character_error::CharacterError, helper_funcs::{accumulate_materials, clean_text, clean_text_colon, compare_color_texts, Parsed}, read_and_write_funcs::check_and_write}, parsed_models::{ParsedArtifact, ParsedCard, ParsedCharacter, ParsedCharacterTCG, ParsedTalentTCG, ParsedWeapon}
 };
 
 pub async fn query_api(inputs: &String, artifacts: &Option<MinimalArtifactMap>) -> Vec<String> {
@@ -184,9 +184,22 @@ async fn character_api_access(char_id : &str, all_terms: &Option<TermMap>) -> Re
                     //println!("{ascension_stat}");
 
                     //parse skills for point breakdowns [or just remove "" and 0.0s?]
-                    let (skills, terms) = handle_skills(&result.skills);
+                    let (skills, mut terms) = handle_skills(&result.skills);
 
-                    // add terms
+                    //sort passives by unlock ascension level
+                    let mut passives = result.passives;
+                    passives.sort_by(|a, b| a.unlock.cmp(&b.unlock));
+                    let mut p_terms = clean_formatting(&mut passives);
+
+                    // clean constellations
+                    let mut constellations = result.constellations;
+                    let mut c_terms = clean_formatting(&mut constellations);
+
+                    // combine all terms' ids:
+                    terms.append(&mut p_terms);
+                    terms.append(&mut c_terms);
+
+                    // add terms from terms map using ids
                     let term_descs = if let Some(t) = all_terms {
                         let outcome = get_specific_terms(t, &terms);
                         if outcome.is_empty() {
@@ -200,10 +213,6 @@ async fn character_api_access(char_id : &str, all_terms: &Option<TermMap>) -> Re
 
                     //get material list - Ascension [1 vec] AND Talents [1 per skill]
                     let (ascension_mats, talent_mats) = parse_materials(&result.materials);
-                    
-                    //sort passives by unlock ascension level
-                    let mut passives = result.passives;
-                    passives.sort_by(|a, b| a.unlock.cmp(&b.unlock));
 
                     let complete_character = ParsedCharacter {
                         name: get_custom_name_from_id(char_id, &result.name),
@@ -213,7 +222,7 @@ async fn character_api_access(char_id : &str, all_terms: &Option<TermMap>) -> Re
                         ascension_stat,
                         skills,
                         passives,
-                        constellations: result.constellations,
+                        constellations,
                         ascension_mats,
                         talent_mats,
                         term_descs
@@ -244,6 +253,38 @@ async fn character_api_access(char_id : &str, all_terms: &Option<TermMap>) -> Re
             message: String::from("URL get failed.")
         });
     }
+}
+
+// fn clean_formatting_from_passives(passives: &mut Vec<Passive>) -> Vec<String> {
+//     let mut all_terms: Vec<String> = vec![];
+//     for passive in passives {
+//         // remove tags (e.g. <color>) from passive. second value is list of terms
+//         let (desc, mut terms) = clean_text(&passive.desc);
+//         passive.desc = desc;
+//         all_terms.append(&mut terms);
+//     }
+//     return all_terms;
+// }
+
+// fn clean_formatting_from_constellations(constellations: &mut Vec<Constellation>) -> Vec<String> {
+//     let mut all_terms: Vec<String> = vec![];
+//     for constellation in constellations {
+//         // remove tags (e.g. <color>) from passive. second value is list of terms
+//         let (desc, mut terms) = clean_text(&constellation.desc);
+//         constellation.desc = desc;
+//         all_terms.append(&mut terms);
+//     }
+//     return all_terms;
+// }
+
+fn clean_formatting<T: HasDescription>(items: &mut [T]) -> Vec<String> {
+    let mut all_terms = Vec::<String>::new();
+    for item in items {
+        let (new_desc, mut terms) = clean_text(item.description());
+        *item.description() = new_desc;
+        all_terms.append(&mut terms);
+    }
+    all_terms
 }
 
 async fn get_all_terms() -> Option<TermMap> {
