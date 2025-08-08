@@ -49,7 +49,7 @@ fn handle_stats_trim_regex<'a>(skill : &'a Promote) -> Vec<String> {
         if desc.eq_ignore_ascii_case("") {
             break;
         }
-        let new_desc = handle_stats_regex_separate(desc, n0_param, n9_param, n12_param, &re);
+        let new_desc = handle_stats_regex_separate(&desc.replace("×", "x"), n0_param, n9_param, n12_param, &re);
         parsed_params.push(new_desc);
     }
     parsed_params

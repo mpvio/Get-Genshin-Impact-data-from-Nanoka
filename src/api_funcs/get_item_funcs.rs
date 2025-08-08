@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use reqwest::Error;
 
 use crate::{
-    base_models::{character::{Character, Constellation, HasDescription, Passive}, hakushin_lists::{MinimalArtifact, MinimalArtifactMap}, tcg_cards::CharacterTCG, terms::TermMap, weapon::Weapon}, character_funcs::{ascension_funcs::get_ascension_stat_option, material_funcs::parse_materials, skill_funcs::handle_skills}, gui_funcs::display_lists::get_custom_name_from_id, other_helper_funcs::{character_error::CharacterError, helper_funcs::{accumulate_materials, clean_text, clean_text_colon, compare_color_texts, Parsed}, read_and_write_funcs::check_and_write}, parsed_models::{ParsedArtifact, ParsedCard, ParsedCharacter, ParsedCharacterTCG, ParsedTalentTCG, ParsedWeapon}
+    base_models::{character::{Character, HasDescription}, hakushin_lists::{MinimalArtifact, MinimalArtifactMap}, tcg_cards::CharacterTCG, terms::TermMap, weapon::Weapon}, character_funcs::{ascension_funcs::get_ascension_stat_option, material_funcs::parse_materials, skill_funcs::handle_skills}, gui_funcs::display_lists::get_custom_name_from_id, other_helper_funcs::{character_error::CharacterError, helper_funcs::{accumulate_materials, clean_text, clean_text_colon, compare_color_texts, Parsed}, read_and_write_funcs::check_and_write}, parsed_models::{ParsedArtifact, ParsedCard, ParsedCharacter, ParsedCharacterTCG, ParsedTalentTCG, ParsedWeapon}
 };
 
 pub async fn query_api(inputs: &String, artifacts: &Option<MinimalArtifactMap>) -> Vec<String> {
@@ -254,28 +254,6 @@ async fn character_api_access(char_id : &str, all_terms: &Option<TermMap>) -> Re
         });
     }
 }
-
-// fn clean_formatting_from_passives(passives: &mut Vec<Passive>) -> Vec<String> {
-//     let mut all_terms: Vec<String> = vec![];
-//     for passive in passives {
-//         // remove tags (e.g. <color>) from passive. second value is list of terms
-//         let (desc, mut terms) = clean_text(&passive.desc);
-//         passive.desc = desc;
-//         all_terms.append(&mut terms);
-//     }
-//     return all_terms;
-// }
-
-// fn clean_formatting_from_constellations(constellations: &mut Vec<Constellation>) -> Vec<String> {
-//     let mut all_terms: Vec<String> = vec![];
-//     for constellation in constellations {
-//         // remove tags (e.g. <color>) from passive. second value is list of terms
-//         let (desc, mut terms) = clean_text(&constellation.desc);
-//         constellation.desc = desc;
-//         all_terms.append(&mut terms);
-//     }
-//     return all_terms;
-// }
 
 fn clean_formatting<T: HasDescription>(items: &mut [T]) -> Vec<String> {
     let mut all_terms = Vec::<String>::new();
