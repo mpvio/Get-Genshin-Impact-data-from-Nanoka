@@ -57,9 +57,9 @@ pub struct Promote {
     #[serde(rename = "0")]
     pub n0: SkillStatBreakdown,
     #[serde(rename = "9")]
-    pub n9: SkillStatBreakdown,
+    pub n9: Option<SkillStatBreakdown>,
     #[serde(rename = "12")]
-    pub n12: SkillStatBreakdown
+    pub n12: Option<SkillStatBreakdown>
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

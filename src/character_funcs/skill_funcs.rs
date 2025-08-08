@@ -35,8 +35,15 @@ fn handle_stats_trim_regex<'a>(skill : &'a Promote) -> Vec<String> {
 
     let mut parsed_params = Vec::<String>::new();
     let n0_param = &n0.param;
-    let n9_param = &skill.n9.param;
-    let n12_param = &skill.n12.param;
+    let n9_param = match &skill.n9 {
+        Some(val) => &val.param,
+        None => &Vec::<f64>::new(),
+    };
+    // let n9_param = &skill.n9.param;
+    let n12_param = match &skill.n12 {
+        Some(val) => &val.param,
+        None => &Vec::<f64>::new(),
+    };
 
     for desc in &n0.desc {
         if desc.eq_ignore_ascii_case("") {
@@ -70,18 +77,26 @@ fn handle_stats_regex_separate(desc : &String, n0: &Vec<f64>, n9: &Vec<f64>, n12
         let Some(n0_value) = n0.get(index) else {
             return captured_string;
         };
+        // check if n9 is empty. if so, skip to implementing single param version
+        if n9.is_empty() {
+            return format_percentage_or_not(format_type, *n0_value);
+        }
+        // else, parse n9
         let Some(n9_value) = n9.get(index) else {
             return format_percentage_or_not(format_type, *n0_value).to_owned();
         };
+
+        // if n0 = n9, use single param version
+        if n0_value.eq(n9_value) {
+            return format_percentage_or_not(format_type, *n0_value);
+        }
+
+        // otherwise, also parse n12 and calculate with all three params
         let Some(n12_value) = n12.get(index) else {
             return format_percentage_or_not(format_type, *n0_value).to_owned();
         };
 
-        if n0_value.eq(n9_value) {
-            return format_percentage_or_not(format_type, *n0_value);
-        } else {
-            return format_percentage_or_not_two_params(format_type, *n0_value, *n9_value, *n12_value);
-        }
+        return format_percentage_or_not_two_params(format_type, *n0_value, *n9_value, *n12_value);
     });
 
     let final_desc = new_desc.to_string();

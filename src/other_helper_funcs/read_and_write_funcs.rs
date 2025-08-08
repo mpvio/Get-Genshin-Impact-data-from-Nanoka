@@ -90,16 +90,20 @@ async fn compare_and_write<T: Serialize> (file: &mut File, old: &T, current: &T,
     let mut outcomes = Vec::<String>::new();
     if success {
         // can use python's diff file
-        let display_name = &format!("{name}.json");
+        let raw_name = match name.strip_suffix(".json") {
+            Some(name) => name,
+            None => &name
+        };
+        
         if map.len() > 0 {
             // a change happened
-            let write_result = write_item_to_file(file, current, display_name, true);
+            let write_result = write_item_to_file(file, current, name, true);
             outcomes.push(write_result);
             // write difference to file
-            outcomes.push(write_diff_to_file_py(&map, name, false))
+            outcomes.push(write_diff_to_file_py(&map, raw_name, false))
         } else {
             // nothing changed, so no need to update anything
-            outcomes.push(format!("{display_name} unchanged."));
+            outcomes.push(format!("{name} unchanged."));
         }
     } else {
         // use rust's diff function
@@ -118,7 +122,7 @@ async fn compare_and_write<T: Serialize> (file: &mut File, old: &T, current: &T,
     outcomes
 }
 
-fn write_diff_to_file_py(diffs: &HashMap<String, CleanDiffs>, name: &String, list: bool) -> String {
+fn write_diff_to_file_py(diffs: &HashMap<String, CleanDiffs>, name: &str, list: bool) -> String {
     let date = chrono::Local::now().format("%y-%m-%d");
     let folders = if !list {"changes"} else {"list_changes"};
     create_dir_all(folders).unwrap();
@@ -158,8 +162,9 @@ pub async fn check_and_write(_category: &str, item: Parsed) -> Vec<String> {
     create_dir_all(&folders).unwrap();
     let mut all_outcomes = Vec::<String>::new();
 
-    let name = item.name();
-    let title = format!("{}/{}.json", folders, &name);
+    let display_name = &format!("{}.json", item.name());
+    let title = format!("{}/{}", folders, display_name);
+
     if let Ok(mut file) = File::options()
     .read(true)
     .write(true)
@@ -172,16 +177,16 @@ pub async fn check_and_write(_category: &str, item: Parsed) -> Vec<String> {
                 //let name = item.name();
                 match (content, item) {
                     (Parsed::C(old), Parsed::C(current)) => {
-                        compare_and_write(&mut file, &old, &current, &name, &title).await
+                        compare_and_write(&mut file, &old, &current, display_name, &title).await
                     },
                     (Parsed::W(old), Parsed::W(current)) => {
-                        compare_and_write(&mut file, &old, &current, &name, &title).await
+                        compare_and_write(&mut file, &old, &current, display_name, &title).await
                     },
                     (Parsed::A(old), Parsed::A(current)) => {
-                        compare_and_write(&mut file, &old, &current, &name, &title).await
+                        compare_and_write(&mut file, &old, &current, display_name, &title).await
                     },
                     (Parsed::T(old), Parsed::T(current)) => {
-                        compare_and_write(&mut file, &old, &current, &name, &title).await
+                        compare_and_write(&mut file, &old, &current, display_name, &title).await
                     }
                     _ => {
                         // content & item aren't the same struct
@@ -192,7 +197,8 @@ pub async fn check_and_write(_category: &str, item: Parsed) -> Vec<String> {
             Err(_) => {
                 // file didn't exist
                 let mut v = Vec::<String>::new();
-                v.push(write_item_to_file(&mut file, &item, &title, false));
+                
+                v.push(write_item_to_file(&mut file, &item, display_name, false));
                 v
             },
         };
