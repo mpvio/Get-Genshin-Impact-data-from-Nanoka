@@ -1,7 +1,9 @@
+use std::collections::HashMap;
 use std::fs::create_dir_all;
 use std::path::Path;
 use std::{fs::File, io::{self, BufReader, Seek, SeekFrom}};
 
+use crate::other_helper_funcs::python_commune::{compare_via_python, CleanDiffs};
 use crate::{hakushin_lists::MinimalNameMap, parsed_models::ParsedCharacter};
 use crate::helper_funcs::Parsed;
 use serde_json::json;
@@ -46,85 +48,6 @@ fn write_diff_to_file(diffs: &Difference, name: &String, list: bool) -> String {
     title
 }
 
-fn _get_better_diffs(diffs: &Difference) {
-    match diffs {
-        Difference::Scalar(scalar_difference) => {
-            match scalar_difference {
-                serde_json_diff::ScalarDifference::Bool { source, target } => {},
-                serde_json_diff::ScalarDifference::String { source, target } => {},
-                serde_json_diff::ScalarDifference::Number { source, target } => {},
-            }
-            /*
-            call the other difference crate to get inline diffs
-            pub enum ScalarDifference {
-                Bool {
-                    source: bool,
-                    target: bool,
-                },
-                String {
-                    source: String,
-                    target: String,
-                },
-                Number {
-                    source: serde_json::Number,
-                    target: serde_json::Number,
-                },
-            }
-             */
-        },
-        Difference::Type { source_type, target_type, target_value } => {
-            // do nothing
-        },
-        Difference::Array(array_difference) => {
-            // call this function recursively on all Differences present
-            match array_difference {
-                serde_json_diff::ArrayDifference::PairsOnly { different_pairs } => {},
-                serde_json_diff::ArrayDifference::Shorter { different_pairs, missing_elements } => {},
-                serde_json_diff::ArrayDifference::Longer { different_pairs, extra_length } => {},
-            }
-            /*
-            pub enum ArrayDifference {
-                /// `source` and `target` are the same length, but some values of the same indices are different
-                PairsOnly {
-                    /// differing pairs that appear in the overlapping indices of `source` and `target`
-                    different_pairs: DumbMap<usize, Difference>,
-                },
-                /// `source` is shorter than `target`
-                Shorter {
-                    /// differing pairs that appear in the overlapping indices of `source` and `target`
-                    different_pairs: Option<DumbMap<usize, Difference>>,
-                    /// elements missing in `source` that appear in `target`
-                    missing_elements: Vec<serde_json::Value>,
-                },
-                /// `source` is longer than `target`
-                Longer {
-                    /// differing pairs that appear in the overlapping indices of `source` and `target`
-                    different_pairs: Option<DumbMap<usize, Difference>>,
-                    /// The amount of extra elements `source` has that `target` does not
-                    extra_length: usize,
-                },
-}
-             */
-        },
-        Difference::Object { different_entries } => {
-            // call function on all differences
-            let de = &different_entries.0;
-            for (key, value) in de {
-                /*
-                pub enum EntryDifference {
-                    /// An entry from `target` that `source` is missing
-                    Missing { value: serde_json::Value },
-                    /// An entry that `source` has, and `target` doesn't
-                    Extra,
-                    /// The entry exists in both JSONs, but the values are different
-                    Value { value_diff: Difference },
-                }
-                 */
-            }
-        },
-    }
-}
-
 async fn compare_items<T: serde::Serialize>(old: T, new: T, name: &String) -> (bool, Option<String>) {
     match serde_json_diff::values(json!(old), json!(new)) {
         Some(diffs) => {
@@ -153,19 +76,81 @@ async fn compare_characters(old_char : &ParsedCharacter, new_char : &ParsedChara
 }
 
 async fn compare_and_write<T: Serialize> (file: &mut File, old: &T, current: &T, name: &String, title: &String) -> Vec<String>{
+
+    let result = compare_via_python(old, current);
+    let (map, success) = match result {
+        Ok(res) => {
+            (res, true)
+        },
+        Err(_) => {
+            (HashMap::<String, CleanDiffs>::new(), false)
+        },
+    };
+
     let mut outcomes = Vec::<String>::new();
-    let (updated, update_result) = compare_items(old, current, name).await;
-    if updated {
-        let write_result = write_item_to_file(file, current, title, true);
-        outcomes.push(write_result);
-    }
-    if let Some(res) = update_result {
-        outcomes.push(res);
-    }
-    if outcomes.is_empty() {
-        outcomes.push(format!("{title} unchanged."));
+    if success {
+        // can use python's diff file
+        let display_name = &format!("{name}.json");
+        if map.len() > 0 {
+            // a change happened
+            let write_result = write_item_to_file(file, current, display_name, true);
+            outcomes.push(write_result);
+            // write difference to file
+            outcomes.push(write_diff_to_file_py(&map, name, false))
+        } else {
+            // nothing changed, so no need to update anything
+            outcomes.push(format!("{display_name} unchanged."));
+        }
+    } else {
+        // use rust's diff function
+        let (updated, update_result) = compare_items(old, current, name).await;
+        if updated {
+            let write_result = write_item_to_file(file, current, title, true);
+            outcomes.push(write_result);
+        }
+        if let Some(res) = update_result {
+            outcomes.push(res);
+        }
+        if outcomes.is_empty() {
+            outcomes.push(format!("{title} unchanged."));
+        }
     }
     outcomes
+}
+
+fn write_diff_to_file_py(diffs: &HashMap<String, CleanDiffs>, name: &String, list: bool) -> String {
+    let date = chrono::Local::now().format("%y-%m-%d");
+    let folders = if !list {"changes"} else {"list_changes"};
+    create_dir_all(folders).unwrap();
+    
+    let mut file_name = format!("{name} {date}");
+    let mut base_title = format!("{folders}/{file_name}.json");
+    let mut counter = 0;
+
+    while Path::new(&base_title).exists() {
+        counter += 1;
+        file_name = format!("{name} {date} ({counter})");
+        base_title = format!("{folders}/{file_name}.json");
+    }
+
+    if let Ok(file) = File::options()
+        .write(true)
+        .truncate(true)
+        .create_new(true) // create_new -> atomicity of write operation
+        .open(&base_title) {
+            match serde_json::to_writer_pretty(file, &diffs) {
+                Ok(_) => {
+                    println!("{base_title} created.");
+                },
+                Err(e) => {
+                    println!("Error writing to {base_title}: {e:#?}");
+                }
+            }
+    } else {
+        println!("Failed to create {base_title}.")
+    }
+
+    format!("{file_name} created.")
 }
 
 pub async fn check_and_write(_category: &str, item: Parsed) -> Vec<String> {
@@ -174,7 +159,7 @@ pub async fn check_and_write(_category: &str, item: Parsed) -> Vec<String> {
     let mut all_outcomes = Vec::<String>::new();
 
     let name = item.name();
-    let title = format!("{}/{}.json", folders, &item.name());
+    let title = format!("{}/{}.json", folders, &name);
     if let Ok(mut file) = File::options()
     .read(true)
     .write(true)
@@ -315,6 +300,11 @@ pub fn write_item_to_file<T: serde::Serialize>(file: &mut File, item: &T, title:
     };
     println!("{}", result);
     result
+
+    // remove '/'s from result so just {name}.json is displayed on screen (via simpler_title)
+    // let temp: Vec<&str> = result.split("/").collect();
+    // let simpler_title = String::from(*temp.last().unwrap());
+    // simpler_title
 }
 
 pub fn write_character_to_file(file: &mut File, character: &ParsedCharacter, title: &String, update: bool){

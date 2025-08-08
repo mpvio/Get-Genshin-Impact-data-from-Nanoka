@@ -1338,7 +1338,6 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "serde_json_diff",
- "structdiff",
  "tokio",
 ]
 
@@ -2878,21 +2877,6 @@ name = "strict-num"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6637bab7722d379c8b41ba849228d680cc12d0a45ba1fa2b48f2a30577a06731"
-
-[[package]]
-name = "structdiff"
-version = "0.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ded2e61f645b60f23f1ee69c122a77ba68dd187abb751c67ad2387bcb773f0b"
-dependencies = [
- "structdiff-derive",
-]
-
-[[package]]
-name = "structdiff-derive"
-version = "0.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9cec3cf082379c048a963041e18a8e741a4e0a1afb14b825bd4bd771366b9a6e"
 
 [[package]]
 name = "strum"
