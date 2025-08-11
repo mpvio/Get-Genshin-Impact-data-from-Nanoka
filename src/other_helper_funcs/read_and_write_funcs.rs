@@ -14,7 +14,11 @@ fn write_diff_to_file(diffs: &Difference, name: &String, list: bool) -> String {
     let date = chrono::Local::now().format("%y-%m-%d");
     let folders = if !list {"changes"} else {"list_changes"};
     create_dir_all(folders).unwrap();
-    let base_title = format!("{folders}/{name}_{date}.json");
+    let nname = match name.strip_suffix(".json") {
+        Some(res) => String::from(res),
+        None => name.clone(),
+    };
+    let base_title = format!("{folders}/{nname}_{date}.json");
     //println!("{}", base_title);
     
     let mut counter = 0;
@@ -23,7 +27,7 @@ fn write_diff_to_file(diffs: &Difference, name: &String, list: bool) -> String {
     // Find the first available filename
     while Path::new(&title).exists() {
         counter += 1;
-        title = format!("changes/{name}_{date} ({counter}).json");
+        title = format!("changes/{nname}_{date} ({counter}).json");
         //println!("{}", title);
     }
 
@@ -90,6 +94,7 @@ async fn compare_and_write<T: Serialize> (file: &mut File, old: &T, current: &T,
     let mut outcomes = Vec::<String>::new();
     if success {
         // can use python's diff file
+        println!("PYTHON DIFF");
         let raw_name = match name.strip_suffix(".json") {
             Some(name) => name,
             None => &name
@@ -107,6 +112,7 @@ async fn compare_and_write<T: Serialize> (file: &mut File, old: &T, current: &T,
         }
     } else {
         // use rust's diff function
+        println!("RUST DIFF");
         let (updated, update_result) = compare_items(old, current, name).await;
         if updated {
             let write_result = write_item_to_file(file, current, title, true);
