@@ -80,7 +80,7 @@ pub fn clean_text_colon(input: &str, keep_colon: bool) -> (String, Vec<String>) 
 
 pub fn compare_color_texts(text1: &str, text2: &str) -> String {
     // regex to capture numbers and trailing non-numeric characters SEPARATELY
-    let re = Regex::new(r"(.*?)(<color=#[0-9A-Fa-f]{8}>(\d+)([^0-9]*)</color>|$)").unwrap();
+    let re = Regex::new(r"(.*?)(<color=#[0-9A-Fa-f]{8}>((?:\d+%?/)*\d+%?)([^<]*)</color>|$)").unwrap();
     let mut captures1 = re.captures_iter(text1);
     let mut captures2 = re.captures_iter(text2);
     let mut result = String::new();
@@ -102,8 +102,10 @@ pub fn compare_color_texts(text1: &str, text2: &str) -> String {
                     println!("Text structure differs between inputs");
                     println!("{plain1:#?}");
                     println!("{plain2:#?}");
+                    result.push_str(&compare_color_texts(plain1, plain2));
+                } else {
+                    result.push_str(plain1);
                 }
-                result.push_str(plain1);
                 
                 // Handle colored content
                 if let (Some(color1), Some(color2)) = (c1.get(3), c2.get(3)) {
