@@ -177,8 +177,7 @@ pub fn show_names_on_ui(
             // get inputs, save outputs
                 ui.label("Enter ids to query:");
                 ui.text_edit_singleline(query);
-                if ui.button("Search").clicked() && !query.is_empty() {
-
+                if ui.button("Search").clicked()  { // && !query.is_empty()
                     // clone params to access async function
                     let query_clone = query.clone();
                     let arts_clone = arts.clone();

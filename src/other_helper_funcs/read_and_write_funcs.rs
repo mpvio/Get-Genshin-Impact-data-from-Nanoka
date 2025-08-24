@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::fs::create_dir_all;
+use std::fs::{self, create_dir_all};
 use std::path::Path;
 use std::{fs::File, io::{self, BufReader, Seek, SeekFrom}};
 
@@ -347,4 +347,12 @@ pub fn get_ids_from_user() -> String {
             String::new()
         },
     }
+}
+
+pub fn get_shortlist() -> Vec<String> {
+    let filename = "shortlist.txt";
+    if let Ok(contents) = fs::read_to_string(filename) {
+        return contents.split_ascii_whitespace().map(|s| s.to_string()).collect();
+    }
+    Vec::new()
 }

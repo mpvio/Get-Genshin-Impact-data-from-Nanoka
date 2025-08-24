@@ -3,18 +3,22 @@ use std::collections::BTreeMap;
 use reqwest::Error;
 
 use crate::{
-    base_models::{character::{Character, HasDescription}, hakushin_lists::{MinimalArtifact, MinimalArtifactMap}, tcg_cards::CharacterTCG, terms::TermMap, weapon::Weapon}, character_funcs::{ascension_funcs::get_ascension_stat_option, material_funcs::parse_materials, skill_funcs::handle_skills}, gui_funcs::display_lists::get_custom_name_from_id, other_helper_funcs::{character_error::CharacterError, helper_funcs::{accumulate_materials, clean_text, clean_text_colon, compare_color_texts, Parsed}, read_and_write_funcs::check_and_write}, parsed_models::{ParsedArtifact, ParsedCard, ParsedCharacter, ParsedCharacterTCG, ParsedTalentTCG, ParsedWeapon}
+    base_models::{character::{Character, HasDescription}, hakushin_lists::{MinimalArtifact, MinimalArtifactMap}, tcg_cards::CharacterTCG, terms::TermMap, weapon::Weapon}, character_funcs::{ascension_funcs::get_ascension_stat_option, material_funcs::parse_materials, skill_funcs::handle_skills}, gui_funcs::display_lists::get_custom_name_from_id, other_helper_funcs::{character_error::CharacterError, helper_funcs::{accumulate_materials, clean_text, clean_text_colon, compare_color_texts, Parsed}, read_and_write_funcs::{check_and_write, get_shortlist}}, parsed_models::{ParsedArtifact, ParsedCard, ParsedCharacter, ParsedCharacterTCG, ParsedTalentTCG, ParsedWeapon}
 };
 
 pub async fn query_api(inputs: &String, artifacts: &Option<MinimalArtifactMap>) -> Vec<String> {
-    let ids : Vec<&str> = inputs.split_ascii_whitespace().collect();
+    let ids : Vec<String> = if inputs.is_empty() {
+        get_shortlist()
+    } else {
+        inputs.split_ascii_whitespace().map(String::from).collect()
+    };
     let mut results = Vec::<String>::new();
     let mut terms: Option<TermMap> = None;
     let mut tried_terms = false;
 
     for id in ids {
         if id.len() == 4 || id.len() == 6 {
-            match card_access(id).await {
+            match card_access(&id).await {
                 Ok(card) => {
                     results.append(&mut check_and_write("card", Parsed::T(card)).await);
                     //check_and_write("card", Parsed::T(card)).await;
@@ -27,17 +31,17 @@ pub async fn query_api(inputs: &String, artifacts: &Option<MinimalArtifactMap>) 
         } 
         else if id.len() == 5 {
             if let Some(ref sets) = artifacts {
-                if sets.contains_key(id) {
+                if sets.contains_key(&id) {
                     // artifact
-                    let artifact = sets.get(id).unwrap();
-                    let new_art = artifact_access(artifact, id).await;
+                    let artifact = sets.get(&id).unwrap();
+                    let new_art = artifact_access(artifact, &id).await;
                     results.append(&mut check_and_write("artifact", Parsed::A(new_art)).await);
                     //check_and_write("artifact", Parsed::A(new_art)).await;
                 } else {
-                    results.append(&mut check_weapon(id).await);
+                    results.append(&mut check_weapon(&id).await);
                 }
             } else {
-                results.append(&mut check_weapon(id).await);
+                results.append(&mut check_weapon(&id).await);
             }
         }
         else {
@@ -45,7 +49,7 @@ pub async fn query_api(inputs: &String, artifacts: &Option<MinimalArtifactMap>) 
                 terms = get_all_terms().await;
                 tried_terms = true;
             }
-            match character_api_access(id, &terms).await {
+            match character_api_access(&id, &terms).await {
                 Ok(character) => {
                     results.append(&mut check_and_write("character", Parsed::C(character)).await);
                 },
