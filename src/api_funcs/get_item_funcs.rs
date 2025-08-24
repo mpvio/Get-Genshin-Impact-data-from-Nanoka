@@ -266,7 +266,7 @@ fn clean_formatting<T: HasDescription>(items: &mut [T]) -> Vec<String> {
 }
 
 async fn get_all_terms() -> Option<TermMap> {
-    let url = "https://api.hakush.in/gi/5.8.50/en/hyperlink.json";
+    let url = "https://api.hakush.in/gi/data/en/hyperlink.json";
     let response = reqwest::get(url).await.ok()?;
     let term_map = response.json::<TermMap>().await.ok()?;
     return Some(term_map);

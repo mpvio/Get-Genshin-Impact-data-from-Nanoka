@@ -40,12 +40,12 @@ pub fn clean_text(input: &str) -> (String, Vec<String>) {
 
 pub fn clean_text_colon(input: &str, keep_colon: bool) -> (String, Vec<String>) {
     // Regex to capture LINK numbers and contents
-    let link_re = Regex::new(r"\{LINK#(N\d+)\}(.*?)\{/LINK\}").unwrap();
+    let link_re = Regex::new(r"\{LINK#([A-Z]\d+)\}(.*?)\{/LINK\}").unwrap();
     let mut link_numbers = Vec::new();
     
     // Process the text while capturing LINK numbers
     let processed_text = link_re.replace_all(input, |caps: &regex::Captures| {
-        let link_num = caps.get(1).unwrap().as_str().trim_start_matches('N');
+        let link_num = caps.get(1).unwrap().as_str().trim_start_matches(char::is_alphabetic); // trim starting character (N or S)
         let content = caps.get(2).unwrap().as_str();
         link_numbers.push(link_num.to_string());
         String::from(content) // Keep the content in the text (only remove the LINK tags)
