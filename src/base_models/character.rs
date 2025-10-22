@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 
@@ -49,6 +51,22 @@ pub struct Skill {
     pub desc: String,
     #[serde(rename = "Promote")]
     pub promote: Promote,
+    #[serde(rename = "SpecialDesc", skip_serializing_if = "Option::is_none")]
+    pub special: Option<String>,
+}
+
+pub trait HasDescriptionRef {
+    fn description(&self) -> &String;
+}
+
+impl HasDescriptionRef for Skill {
+    fn description(&self) -> &String {
+        if let Some(desc) = &self.special {
+            desc
+        } else {
+            &self.desc
+        }
+    } 
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -73,6 +91,54 @@ pub struct SkillStatBreakdown {
     pub param: Vec<f64>,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Unlock {
+    Single(i64),
+    Multiple(Vec<i64>),
+}
+
+impl Default for Unlock {
+    fn default() -> Self {
+        Unlock::Single(0)
+    }
+}
+
+impl PartialOrd for Unlock {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Unlock {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self, other) {
+            // Compare two Single values
+            (Unlock::Single(a), Unlock::Single(b)) => a.cmp(b),
+            
+            // Single always comes before Multiple
+            (Unlock::Single(_), Unlock::Multiple(_)) => Ordering::Less,
+            (Unlock::Multiple(_), Unlock::Single(_)) => Ordering::Greater,
+            
+            // Compare two Multiple values - you can define this logic as needed
+            // For example, compare by first element, then length
+            (Unlock::Multiple(a), Unlock::Multiple(b)) => {
+                match (a.first(), b.first()) {
+                    (Some(a_first), Some(b_first)) => {
+                        a_first.cmp(b_first).then_with(|| a.len().cmp(&b.len()))
+                    }
+                    (Some(_), None) => Ordering::Greater,
+                    (None, Some(_)) => Ordering::Less,
+                    (None, None) => Ordering::Equal,
+                }
+            }
+        }
+    }
+}
+
+// Implement Eq since we have PartialEq and Ord
+impl Eq for Unlock {}
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Passive {
@@ -81,7 +147,7 @@ pub struct Passive {
     #[serde(rename = "Desc")]
     pub desc: String,
     #[serde(rename = "Unlock")]
-    pub unlock: i64
+    pub unlock: Unlock
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -90,7 +156,9 @@ pub struct Constellation {
     #[serde(rename = "Name")]
     pub name: String,
     #[serde(rename = "Desc")]
-    pub desc: String
+    pub desc: String,
+    #[serde(rename = "SpecialDesc", skip_serializing_if = "Option::is_none")]
+    pub special: Option<String>
 }
 
 // define "has desc" trait to reuse cleaning function for passive & constellation:
@@ -106,7 +174,11 @@ impl HasDescription for Passive {
 
 impl HasDescription for Constellation {
     fn description(&mut self) -> &mut String {
-        &mut self.desc
+        if let Some(desc) = &mut self.special {
+            desc
+        } else {
+            &mut self.desc
+        }
     }
 }
 

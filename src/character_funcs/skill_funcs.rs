@@ -1,7 +1,7 @@
 use regex::{Captures, Regex};
 use serde::{Deserialize, Serialize};
 
-use crate::{character::{Promote, Skill}, parsed_models::ParsedSkill};
+use crate::{base_models::character::HasDescriptionRef, character::{Promote, Skill}, parsed_models::ParsedSkill};
 use crate::helper_funcs::clean_text;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -16,7 +16,7 @@ pub fn handle_skills<'a>(skills : &'a Vec<Skill>) -> (Vec<ParsedSkill>, Vec<Stri
     for skill in skills {
         //let (param_list, param_values) = handle_stats_trim(&skill.promote);
         //let str_list_converted_to_string = param_list.iter().map(|&z| z.to_string()).collect();
-        let (desc, mut key_terms) = clean_text(&skill.desc);
+        let (desc, mut key_terms) = clean_text(&skill.description());
         let x = ParsedSkill {
             name: skill.name.clone(),
             desc,

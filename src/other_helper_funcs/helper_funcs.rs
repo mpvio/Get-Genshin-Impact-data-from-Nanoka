@@ -4,7 +4,8 @@ use std::collections::{BTreeMap, HashMap};
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 
-use crate::parsed_models::ParsedArtifact;
+use crate::base_models::character::{Constellation, HasDescription};
+use crate::parsed_models::{ParsedArtifact, ParsedConstellation};
 use crate::parsed_models::ParsedCharacter;
 use crate::parsed_models::ParsedCard;
 use crate::parsed_models::ParsedWeapon;
@@ -170,4 +171,16 @@ pub fn accumulate_materials(materials_map: &BTreeMap<String, Materials>) -> Mate
         mats,
         cost: total_cost,
     }
+}
+
+pub fn convert_constellations(constellations: &mut Vec<Constellation>) -> Vec<ParsedConstellation> {
+    let mut cons = Vec::<ParsedConstellation>::new();
+    for con in constellations {
+        let temp = ParsedConstellation {
+            name: con.name.clone(),
+            desc: con.description().to_string()
+        };
+        cons.push(temp);
+    }
+    cons
 }

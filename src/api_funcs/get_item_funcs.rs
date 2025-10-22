@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use reqwest::Error;
 
 use crate::{
-    base_models::{character::{Character, HasDescription}, hakushin_lists::{MinimalArtifact, MinimalArtifactMap}, tcg_cards::CharacterTCG, terms::TermMap, weapon::Weapon}, character_funcs::{ascension_funcs::get_ascension_stat_option, material_funcs::parse_materials, skill_funcs::handle_skills}, gui_funcs::display_lists::get_custom_name_from_id, other_helper_funcs::{character_error::CharacterError, helper_funcs::{accumulate_materials, clean_text, clean_text_colon, compare_color_texts, Parsed}, read_and_write_funcs::{check_and_write, get_shortlist}}, parsed_models::{ParsedArtifact, ParsedCard, ParsedCharacter, ParsedCharacterTCG, ParsedTalentTCG, ParsedWeapon}
+    base_models::{character::{Character, HasDescription}, hakushin_lists::{MinimalArtifact, MinimalArtifactMap}, tcg_cards::CharacterTCG, terms::TermMap, weapon::Weapon}, character_funcs::{ascension_funcs::get_ascension_stat_option, material_funcs::parse_materials, skill_funcs::handle_skills}, gui_funcs::display_lists::get_custom_name_from_id, other_helper_funcs::{character_error::CharacterError, helper_funcs::{accumulate_materials, clean_text, clean_text_colon, compare_color_texts, convert_constellations, Parsed}, read_and_write_funcs::{check_and_write, get_shortlist}}, parsed_models::{ParsedArtifact, ParsedCard, ParsedCharacter, ParsedCharacterTCG, ParsedTalentTCG, ParsedWeapon}
 };
 
 pub async fn query_api(inputs: &String, artifacts: &Option<MinimalArtifactMap>) -> Vec<String> {
@@ -226,7 +226,7 @@ async fn character_api_access(char_id : &str, all_terms: &Option<TermMap>) -> Re
                         ascension_stat,
                         skills,
                         passives,
-                        constellations,
+                        constellations: convert_constellations(&mut constellations),
                         ascension_mats,
                         talent_mats,
                         term_descs
