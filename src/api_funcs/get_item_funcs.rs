@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use reqwest::Error;
 
 use crate::{
-    base_models::{character::{Character, HasDescription}, hakushin_lists::{MinimalArtifact, MinimalArtifactMap}, tcg_cards::CharacterTCG, terms::TermMap, weapon::Weapon}, character_funcs::{ascension_funcs::get_ascension_stat_option, material_funcs::parse_materials, skill_funcs::handle_skills}, gui_funcs::display_lists::get_custom_name_from_id, other_helper_funcs::{character_error::CharacterError, helper_funcs::{accumulate_materials, clean_text, clean_text_colon, compare_color_texts, convert_constellations, Parsed}, read_and_write_funcs::{check_and_write, get_shortlist}}, parsed_models::{ParsedArtifact, ParsedCard, ParsedCharacter, ParsedCharacterTCG, ParsedTalentTCG, ParsedWeapon}
+    base_models::{character::{Character, HasDescription}, hakushin_lists::{MinimalArtifact, MinimalArtifactMap}, tcg_cards::CharacterTCG, terms::TermMap, weapon::Weapon}, character_funcs::{ascension_funcs::get_ascension_stat_option, material_funcs::parse_materials, skill_funcs::handle_skills}, gui_funcs::display_lists::get_custom_name_from_id, other_helper_funcs::{character_error::CharacterError, helper_funcs::{Parsed, accumulate_materials, clean_text, clean_text_colon, compare_color_texts, convert_constellations}, read_and_write_funcs::{check_and_write, get_latest_boss, get_shortlist}}, parsed_models::{ParsedArtifact, ParsedCard, ParsedCharacter, ParsedCharacterTCG, ParsedTalentTCG, ParsedWeapon}
 };
 
 pub async fn query_api(inputs: &String, artifacts: &Option<MinimalArtifactMap>) -> Vec<String> {
@@ -15,6 +15,9 @@ pub async fn query_api(inputs: &String, artifacts: &Option<MinimalArtifactMap>) 
     let mut results = Vec::<String>::new();
     let mut terms: Option<TermMap> = None;
     let mut tried_terms = false;
+
+    // get latest boss (call once here to avoid separate calls for each character)
+    let latest_boss_id = get_latest_boss();
 
     for id in ids {
         if id.len() == 4 || id.len() == 6 {
@@ -49,7 +52,7 @@ pub async fn query_api(inputs: &String, artifacts: &Option<MinimalArtifactMap>) 
                 terms = get_all_terms().await;
                 tried_terms = true;
             }
-            match character_api_access(&id, &terms).await {
+            match character_api_access(&id, &terms, latest_boss_id).await {
                 Ok(character) => {
                     results.append(&mut check_and_write("character", Parsed::C(character)).await);
                 },
@@ -172,7 +175,7 @@ async fn weapon_access(id: &str) -> Result<ParsedWeapon, Error>{
     panic!("API CALL FAILED");
 }
 
-async fn character_api_access(char_id : &str, all_terms: &Option<TermMap>) -> Result<ParsedCharacter, CharacterError> {
+async fn character_api_access(char_id : &str, all_terms: &Option<TermMap>, latest_boss_id: i64) -> Result<ParsedCharacter, CharacterError> {
     let base_url = format!("https://api.hakush.in/gi/data/en/character/{}.json",char_id);
     //println!("CHARACTER");
 
@@ -216,7 +219,7 @@ async fn character_api_access(char_id : &str, all_terms: &Option<TermMap>) -> Re
                     };
 
                     //get material list - Ascension [1 vec] AND Talents [1 per skill]
-                    let (ascension_mats, talent_mats) = parse_materials(&result.materials);
+                    let (ascension_mats, talent_mats) = parse_materials(&result.materials, latest_boss_id);
 
                     let complete_character = ParsedCharacter {
                         name: get_custom_name_from_id(char_id, &result.name),

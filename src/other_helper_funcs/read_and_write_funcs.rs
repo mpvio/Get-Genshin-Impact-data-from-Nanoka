@@ -356,3 +356,12 @@ pub fn get_shortlist() -> Vec<String> {
     }
     Vec::new()
 }
+
+pub fn get_latest_boss() -> i64 {
+    let filename = "latestboss.txt";
+    let default: i64 = 113080;
+    if let Ok(contents) = fs::read_to_string(filename) {
+        return contents.trim().parse::<i64>().unwrap_or(default);
+    }
+    default
+}
