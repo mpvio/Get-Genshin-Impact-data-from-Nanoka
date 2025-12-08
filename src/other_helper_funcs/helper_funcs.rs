@@ -103,7 +103,8 @@ pub fn compare_color_texts(text1: &str, text2: &str) -> String {
                     println!("Text structure differs between inputs");
                     println!("{plain1:#?}");
                     println!("{plain2:#?}");
-                    result.push_str(&compare_color_texts(plain1, plain2));
+                    result.push_str(plain1);
+                    // result.push_str(&compare_color_texts(plain1, plain2));
                 } else {
                     result.push_str(plain1);
                 }
