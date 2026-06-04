@@ -6,7 +6,7 @@ use crate::{
     base_models::{character::{Character, HasDescription}, hakushin_lists::{MinimalArtifact, MinimalArtifactMap}, tcg_cards::CharacterTCG, terms::TermMap, weapon::Weapon}, character_funcs::{ascension_funcs::get_ascension_stat_option, material_funcs::parse_materials, skill_funcs::handle_skills}, gui_funcs::display_lists::get_custom_name_from_id, other_helper_funcs::{character_error::CharacterError, helper_funcs::{Parsed, accumulate_materials, clean_text, clean_text_colon, compare_color_texts, convert_constellations}, read_and_write_funcs::{check_and_write, get_latest_boss, get_shortlist}}, parsed_models::{ParsedArtifact, ParsedCard, ParsedCharacter, ParsedCharacterTCG, ParsedTalentTCG, ParsedWeapon}
 };
 
-pub async fn query_api(inputs: &String, artifacts: &Option<MinimalArtifactMap>) -> Vec<String> {
+pub async fn query_api(version: &String, inputs: &String, artifacts: &Option<MinimalArtifactMap>) -> Vec<String> {
     let ids : Vec<String> = if inputs.is_empty() {
         get_shortlist()
     } else {
@@ -21,7 +21,7 @@ pub async fn query_api(inputs: &String, artifacts: &Option<MinimalArtifactMap>) 
 
     for id in ids {
         if id.len() == 4 || id.len() == 6 {
-            match card_access(&id).await {
+            match card_access(&id, version).await {
                 Ok(card) => {
                     results.append(&mut check_and_write("card", Parsed::T(card)).await);
                     //check_and_write("card", Parsed::T(card)).await;
@@ -41,18 +41,14 @@ pub async fn query_api(inputs: &String, artifacts: &Option<MinimalArtifactMap>) 
                     results.append(&mut check_and_write("artifact", Parsed::A(new_art)).await);
                     //check_and_write("artifact", Parsed::A(new_art)).await;
                 } else {
-                    results.append(&mut check_weapon(&id).await);
+                    results.append(&mut check_weapon(&id, version).await);
                 }
             } else {
-                results.append(&mut check_weapon(&id).await);
+                results.append(&mut check_weapon(&id, version).await);
             }
         }
         else {
-            if !tried_terms {
-                terms = get_all_terms().await;
-                tried_terms = true;
-            }
-            match character_api_access(&id, &terms, latest_boss_id).await {
+            match character_api_access(&id, &terms, latest_boss_id, version).await {
                 Ok(character) => {
                     results.append(&mut check_and_write("character", Parsed::C(character)).await);
                 },
@@ -60,15 +56,18 @@ pub async fn query_api(inputs: &String, artifacts: &Option<MinimalArtifactMap>) 
                     results.push(format!("{:#?}", err.message));
                 },
             };
-            
+            if !tried_terms {
+                terms = get_all_terms().await;
+                tried_terms = true;
+            }
         }
     }
 
     results
 }
 
-async fn check_weapon(id: &str) -> Vec<String> {
-    let res = weapon_access(id).await;
+async fn check_weapon(id: &str, version: &String) -> Vec<String> {
+    let res = weapon_access(id, version).await;
     match res {
         Ok(weapon) => check_and_write("weapon", Parsed::W(weapon)).await,
         Err(err) => {
@@ -95,8 +94,8 @@ async fn artifact_access(artifact: &MinimalArtifact, key: &str) -> ParsedArtifac
 
 }
 
-async fn card_access(id: &str) -> Result<ParsedCard, Error> {
-    let base_url = format!("https://api.hakush.in/gi/data/en/gcg/{id}.json");
+async fn card_access(id: &str, version: &String) -> Result<ParsedCard, Error> {
+    let base_url = format!("https://static.nanoka.cc/gi/{version}/en/gcg/{id}.json");
 
     if let Ok(url) = reqwest::Url::parse(&base_url) {
         //println!("1");
@@ -140,8 +139,8 @@ async fn card_access(id: &str) -> Result<ParsedCard, Error> {
     panic!("API FAIL");
 }
 
-async fn weapon_access(id: &str) -> Result<ParsedWeapon, Error>{
-    let base_url = format!("https://api.hakush.in/gi/data/en/weapon/{}.json", id);
+async fn weapon_access(id: &str, version: &String) -> Result<ParsedWeapon, Error>{
+    let base_url = format!("https://static.nanoka.cc/gi/{version}/en/weapon/{}.json", id);
     //println!("WEAPON");
 
     if let Ok(url) = reqwest::Url::parse(&base_url) {
@@ -175,14 +174,16 @@ async fn weapon_access(id: &str) -> Result<ParsedWeapon, Error>{
     panic!("API CALL FAILED");
 }
 
-async fn character_api_access(char_id : &str, all_terms: &Option<TermMap>, latest_boss_id: i64) -> Result<ParsedCharacter, CharacterError> {
-    let base_url = format!("https://api.hakush.in/gi/data/en/character/{}.json",char_id);
+async fn character_api_access(char_id : &str, all_terms: &Option<TermMap>, latest_boss_id: i64, version: &String) -> Result<ParsedCharacter, CharacterError> {
+    let base_url = format!("https://static.nanoka.cc/gi/{version}/en/character/{}.json",char_id);
     //println!("CHARACTER");
 
     if let Ok(get_url) = reqwest::Url::parse(&base_url) {
         let response = reqwest::get(get_url).await;
         if let Ok(resp) = response {
             if resp.status() == reqwest::StatusCode::OK {
+                // let json_str = format!("{:#?}", resp);
+                // println!("{json_str:#?}");
                 let parsed_result = resp.json::<Character>().await;
                 if let Ok(result) = parsed_result {
                     //get ascension stat
@@ -238,8 +239,9 @@ async fn character_api_access(char_id : &str, all_terms: &Option<TermMap>, lates
                     return Ok(complete_character);
                 } else {
                     //println!("JSON parsing failed.");
+                    let err = parsed_result.unwrap_err();
                     return Err(CharacterError { 
-                        message: String::from("JSON parsing failed.")
+                        message: err.to_string() //String::from("JSON parsing failed.")
                     });
                 }
             } else {

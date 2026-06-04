@@ -59,19 +59,19 @@ impl Talent {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+// #[serde(rename_all = "camelCase")]
 pub struct CharacterTCG {
-    #[serde(rename = "Name")]
+    // #[serde(rename = "Name")]
     pub name: String,
-    #[serde(rename = "Type")]
+    // #[serde(rename = "Type")]
     pub card_type: String,
-    #[serde(rename = "Hp")]
+    // #[serde(rename = "Hp")]
     pub hp: Option<u8>,
-    #[serde(rename = "Cost")]
+    // #[serde(rename = "Cost")]
     pub cost: Cost,
-    #[serde(rename = "Tag")]
+    // #[serde(rename = "Tag")]
     pub tag: Vec<String>,
-    #[serde(rename = "Talent")]
+    // #[serde(rename = "Talent")]
     pub talent: Talent,
 }
 
@@ -130,13 +130,13 @@ impl TCGChildTypes {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+// #[serde(rename_all = "camelCase")]
 pub struct TCGTalentEffect {
-    #[serde(rename = "Name")]
+    // #[serde(rename = "Name")]
     pub name: String, 
-    #[serde(rename = "Desc")]
+    // #[serde(rename = "Desc")]
     pub desc: String, 
-    #[serde(rename = "Child")]
+    // #[serde(rename = "Child")]
     pub child: Option<BTreeMap<String, TCGChildTypes>>,
 }
 
@@ -203,35 +203,35 @@ impl TCGTalentEffect {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+// #[serde(rename_all = "camelCase")]
 pub struct CharacterTCGTalentChild {
-    #[serde(rename = "Name")]
+    // #[serde(rename = "Name")]
     pub name: String, 
-    #[serde(rename = "Desc")]
+    // #[serde(rename = "Desc")]
     pub desc: String, 
-    #[serde(rename = "Child")]
+    // #[serde(rename = "Child")]
     pub child: BTreeMap<String, TCGChildTypes>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+// #[serde(rename_all = "camelCase")]
 pub struct TalentTCG {
-    #[serde(rename = "Name")]
+    // #[serde(rename = "Name")]
     pub name: String,
-    #[serde(rename = "Type")]
+    #[serde(rename = "type")]
     pub card_type: String,
-    #[serde(rename = "Tag")]
+    // #[serde(rename = "Tag")]
     pub tag: Vec<String>,
-    #[serde(rename = "Cost")]
+    // #[serde(rename = "Cost")]
     pub cost: Vec<TalentTCGCost>,
-    #[serde(rename = "Talent")]
+    // #[serde(rename = "Talent")]
     pub talent: BTreeMap<String, TCGTalentEffect>
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+// #[serde(rename_all = "camelCase")]
 pub struct TalentTCGCost {
-    #[serde(rename = "costType")]
+    // #[serde(rename = "costType")]
     pub cost_type: String,
     pub count: Option<u8>
 }

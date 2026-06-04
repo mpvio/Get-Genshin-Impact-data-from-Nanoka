@@ -54,13 +54,13 @@ pub fn filter_items<'a>(
     })
 }
 
-pub async fn get_names () -> (Vec<ItemNames>, Vec<ItemNames>, Vec<ItemNames>, Vec<ItemNames>, Option<MinimalArtifactMap>) {
+pub async fn get_names (version: &String) -> (Vec<ItemNames>, Vec<ItemNames>, Vec<ItemNames>, Vec<ItemNames>, Option<MinimalArtifactMap>) {
     let (
         chars, 
         weaps, 
         _cards, 
         arts
-    ) = get_minimals(true).await;
+    ) = get_minimals(true, version).await;
     
     let characters = parse_just_names(&chars);
     let weapons = parse_just_names(&weaps);

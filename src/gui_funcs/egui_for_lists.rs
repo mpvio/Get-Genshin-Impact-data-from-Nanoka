@@ -11,6 +11,7 @@ pub struct HakuGIApp {
     artifacts: Vec<ItemNames>,
     query: String,
     arts: Option<MinimalArtifactMap>,
+    version: String,
     outputs: Vec<String>,
     char_search: String,
     weap_search: String,
@@ -19,14 +20,14 @@ pub struct HakuGIApp {
 }
 
 impl HakuGIApp {
-    pub async fn new() -> Self {
+    pub async fn new(version: &String) -> Self {
         let (
             characters, 
             weapons, 
             cards, 
             artifacts,
             arts
-        ) = get_names().await;
+        ) = get_names(version).await;
         Self {
             characters,
             weapons,
@@ -34,6 +35,7 @@ impl HakuGIApp {
             artifacts,
             query: String::new(),
             arts,
+            version: version.to_string(),
             outputs: Vec::<String>::new(),
             char_search: String::new(),
             weap_search: String::new(),
@@ -54,6 +56,7 @@ impl eframe::App for HakuGIApp {
                 &self.artifacts, 
                 &mut self.query, 
                 &self.arts,
+                &self.version,
                 &mut self.outputs,
                 &mut self.char_search,
                 &mut self.weap_search,
@@ -72,6 +75,7 @@ pub fn show_names_on_ui(
     artifacts: &Vec<ItemNames>,
     query: &mut String,
     arts: &Option<MinimalArtifactMap>,
+    version: &String,
     outputs: &mut Vec<String>,
     char_search: &mut String,
     weap_search: &mut String,
@@ -181,12 +185,13 @@ pub fn show_names_on_ui(
                     // clone params to access async function
                     let query_clone = query.clone();
                     let arts_clone = arts.clone();
+                    let version_clone = version.clone();
                     //let mut outputs_clone = outputs.clone();
 
                     // create temporary thread to access async function
                     let query_result = std::thread::spawn(move || {
                         Runtime::new().unwrap().block_on(async {
-                            query_api(&query_clone, &arts_clone).await
+                            query_api(&version_clone, &query_clone, &arts_clone).await
                             //String::from("todo: get actual outputs")
                         })
                     });

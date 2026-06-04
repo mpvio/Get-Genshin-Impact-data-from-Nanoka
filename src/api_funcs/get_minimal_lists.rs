@@ -3,25 +3,27 @@ use crate::{
     other_helper_funcs::read_and_write_funcs::write_list_to_file
 };
 
-pub async fn get_minimals(with_ui: bool) -> (Option<MinimalNameMap>,  Option<MinimalNameMap>, Option<MinimalNameMap>, Option<MinimalArtifactMap>) {
+pub async fn get_minimals(with_ui: bool, version: &String) -> (Option<MinimalNameMap>,  Option<MinimalNameMap>, Option<MinimalNameMap>, Option<MinimalArtifactMap>) {
     if !with_ui {println!("CHARACTERS:");}
-    let characters = get_minimal_characters(with_ui).await;
+    let characters = get_minimal_characters(with_ui, version).await;
     if !with_ui {println!("\nWEAPONS:");}
-    let weapons = get_minimal_weapons(with_ui).await;
+    let weapons = get_minimal_weapons(with_ui, version).await;
     if !with_ui {println!("\nCARDS:");}
-    let cards = get_minimal_cards(with_ui).await;
+    let cards = get_minimal_cards(with_ui, version).await;
     if !with_ui {println!("\nARTIFACTS:");}
-    let artifacts = get_minimal_artifacts(with_ui).await;
+    let artifacts = get_minimal_artifacts(with_ui, version).await;
     
     (characters, weapons, cards, artifacts)
 }
 
-async fn get_minimal_characters(with_ui: bool) -> Option<MinimalNameMap> {
-    let url = "https://api.hakush.in/gi/data/character.json";
+async fn get_minimal_characters(with_ui: bool, version: &String) -> Option<MinimalNameMap> {
+    let url = format!("https://static.nanoka.cc/gi/{version}/character.json");
     let chars_per_row = 5;
 
     if let Ok(response) = reqwest::get(url).await {
+        // println!("{response:#?}");
         if let Ok(map) = response.json::<MinimalNameMap>().await {
+            // println!("{map:#?}");
             if !with_ui {
                 let mut count = 0;
                 for (key, value) in &map {
@@ -43,8 +45,8 @@ async fn get_minimal_characters(with_ui: bool) -> Option<MinimalNameMap> {
     None
 }
 
-async fn get_minimal_weapons(with_ui: bool) -> Option<MinimalNameMap> {
-    let url = "https://api.hakush.in/gi/data/weapon.json";
+async fn get_minimal_weapons(with_ui: bool, version: &String) -> Option<MinimalNameMap> {
+    let url = format!("https://static.nanoka.cc/gi/{version}/weapon.json");
     let chars_per_row = 5;
 
     if let Ok(response) = reqwest::get(url).await {
@@ -70,8 +72,8 @@ async fn get_minimal_weapons(with_ui: bool) -> Option<MinimalNameMap> {
     None
 }
 
-async fn get_minimal_cards(with_ui: bool) -> Option<MinimalNameMap> {
-    let url = "https://api.hakush.in/gi/data/gcg.json";
+async fn get_minimal_cards(with_ui: bool, version: &String) -> Option<MinimalNameMap> {
+    let url = format!("https://static.nanoka.cc/gi/{version}/gcg.json");
     let chars_per_row = 5;
 
     if let Ok(response) = reqwest::get(url).await {
@@ -102,8 +104,8 @@ async fn get_minimal_cards(with_ui: bool) -> Option<MinimalNameMap> {
     None
 }
 
-async fn get_minimal_artifacts(with_ui: bool) -> Option<MinimalArtifactMap> {
-    let url = "https://api.hakush.in/gi/data/artifact.json";
+async fn get_minimal_artifacts(with_ui: bool, version: &String) -> Option<MinimalArtifactMap> {
+    let url = format!("https://static.nanoka.cc/gi/{version}/artifact.json");
     let chars_per_row = 5;
 
     if let Ok(response) = reqwest::get(url).await {

@@ -4,54 +4,54 @@ use serde_derive::Deserialize;
 use serde_derive::Serialize;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+// #[serde(rename_all = "camelCase")]
 pub struct Character {
-    #[serde(rename = "Name")]
+    // #[serde(rename = "Name")]
     pub name: String,
-    #[serde(rename = "Desc")]
+    // #[serde(rename = "Desc")]
     pub desc: String,
-    #[serde(rename = "CharaInfo")]
+    // #[serde(rename = "CharaInfo")]
     pub chara_info: CharaInfo,
-    #[serde(rename = "Weapon")]
+    // #[serde(rename = "Weapon")]
     pub weapon: String,
-    #[serde(rename = "Rarity")]
+    // #[serde(rename = "Rarity")]
     pub rarity: String,
-    #[serde(rename = "StatsModifier")]
+    // #[serde(rename = "StatsModifier")]
     pub stats_modifier: StatsModifier,
-    #[serde(rename = "Skills")]
+    // #[serde(rename = "Skills")]
     pub skills: Vec<Skill>,
-    #[serde(rename = "Passives")]
+    // #[serde(rename = "Passives")]
     pub passives: Vec<Passive>,
-    #[serde(rename = "Constellations")]
+    // #[serde(rename = "Constellations")]
     pub constellations: Vec<Constellation>,
-    #[serde(rename = "Materials")]
+    // #[serde(rename = "Materials")]
     pub materials: Materials
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+// #[serde(rename_all = "camelCase")]
 pub struct CharaInfo {
-    #[serde(rename = "Vision")]
+    // #[serde(rename = "Vision")]
     pub vision: String
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+// #[serde(rename_all = "camelCase")]
 pub struct StatsModifier {
-    #[serde(rename = "Ascension")]
+    // #[serde(rename = "Ascension")]
     pub ascension: Vec<serde_json::Value>
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+// #[serde(rename_all = "camelCase")]
 pub struct Skill {
-    #[serde(rename = "Name")]
+    // #[serde(rename = "Name")]
     pub name: String,
-    #[serde(rename = "Desc")]
+    // #[serde(rename = "Desc")]
     pub desc: String,
-    #[serde(rename = "Promote")]
+    // #[serde(rename = "Promote")]
     pub promote: Promote,
-    #[serde(rename = "SpecialDesc", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub special: Option<String>,
 }
 
@@ -70,7 +70,7 @@ impl HasDescriptionRef for Skill {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+// #[serde(rename_all = "camelCase")]
 pub struct Promote {
     #[serde(rename = "0")]
     pub n0: SkillStatBreakdown,
@@ -81,13 +81,13 @@ pub struct Promote {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+// #[serde(rename_all = "camelCase")]
 pub struct SkillStatBreakdown {
-    #[serde(rename = "Level")]
+    // #[serde(rename = "Level")]
     pub level: i64,
-    #[serde(rename = "Desc")]
+    // #[serde(rename = "Desc")]
     pub desc: Vec<String>,
-    #[serde(rename = "Param")]
+    // #[serde(rename = "Param")]
     pub param: Vec<f64>,
 }
 
@@ -140,24 +140,24 @@ impl Ord for Unlock {
 impl Eq for Unlock {}
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+// #[serde(rename_all = "camelCase")]
 pub struct Passive {
-    #[serde(rename = "Name")]
+    // #[serde(rename = "Name")]
     pub name: String,
-    #[serde(rename = "Desc")]
+    // #[serde(rename = "Desc")]
     pub desc: String,
-    #[serde(rename = "Unlock")]
+    // #[serde(rename = "Unlock")]
     pub unlock: Unlock
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+// #[serde(rename_all = "camelCase")]
 pub struct Constellation {
-    #[serde(rename = "Name")]
+    // #[serde(rename = "Name")]
     pub name: String,
-    #[serde(rename = "Desc")]
+    // #[serde(rename = "Desc")]
     pub desc: String,
-    #[serde(rename = "SpecialDesc", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub special: Option<String>
 }
 
@@ -183,32 +183,32 @@ impl HasDescription for Constellation {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+// #[serde(rename_all = "camelCase")]
 pub struct Materials {
-    #[serde(rename = "Ascensions")]
+    // #[serde(rename = "Ascensions")]
     pub ascensions: Vec<AscensionORTalent>,
-    #[serde(rename = "Talents")]
+    // #[serde(rename = "Talents")]
     pub talents: Vec<Vec<AscensionORTalent>>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+// #[serde(rename_all = "camelCase")]
 pub struct AscensionORTalent {
-    #[serde(rename = "Mats")]
+    // #[serde(rename = "Mats")]
     pub mats: Vec<Mat>,
-    #[serde(rename = "Cost")]
+    // #[serde(rename = "Cost")]
     pub cost: i64,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+// #[serde(rename_all = "camelCase")]
 pub struct Mat {
-    #[serde(rename = "Name")]
+    // #[serde(rename = "Name")]
     pub name: String,
-    #[serde(rename = "Id")]
+    // #[serde(rename = "Id")]
     pub id: i64,
-    #[serde(rename = "Count")]
+    // #[serde(rename = "Count")]
     pub count: i64,
-    #[serde(rename = "Rank")]
+    // #[serde(rename = "Rank")]
     pub rank: i64,
 }

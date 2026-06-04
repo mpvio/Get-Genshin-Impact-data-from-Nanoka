@@ -3,7 +3,7 @@ use std::collections::{BTreeMap};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct JustTheName {
-    #[serde(rename = "EN")]
+    // #[serde(rename = "EN")]
     pub en: String //valid for characters, weapons, tcg cards
 }
 

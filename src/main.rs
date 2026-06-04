@@ -2,7 +2,7 @@ use egui::ViewportBuilder;
 use read_and_write_funcs::get_ids_from_user;
 
 use crate::{
-    api_funcs::get_item_funcs::{query_api}, get_minimal_lists::get_minimals, gui_funcs::egui_for_lists::HakuGIApp
+    api_funcs::get_item_funcs::query_api, base_models::manifest::Manifest, get_minimal_lists::get_minimals, gui_funcs::egui_for_lists::HakuGIApp
 };
 
 pub mod other_helper_funcs;
@@ -23,28 +23,42 @@ async fn main() {
 }
 
 async fn show_ui() {
-    let app = HakuGIApp::new().await;
-    let options = eframe::NativeOptions {
-        viewport: ViewportBuilder::default().with_inner_size([1220.0, 700.0]),
-        ..Default::default()
-    };
+    let latest = get_current_version().await;
+    if let Some(version) = latest {
+        let app = HakuGIApp::new(&version).await;
+        let options = eframe::NativeOptions {
+            viewport: ViewportBuilder::default().with_inner_size([1220.0, 700.0]),
+            ..Default::default()
+        };
 
-    eframe::run_native(
-        "Genshin Data Viewer",
-        options,
-        Box::new(|_cc| Ok(Box::new(app))),
-    ).unwrap();
+        eframe::run_native(
+            "Genshin Data Viewer",
+            options,
+            Box::new(|_cc| Ok(Box::new(app))),
+        ).unwrap();
+    }
 }
 
 async fn _non_ui_version() {
-    let (_, _, _, artifacts) = get_minimals(false).await;
-    let inputs: String = get_ids_from_user();
+    let latest = get_current_version().await;
+    if let Some(version) = latest {
+        let (_, _, _, artifacts) = get_minimals(false, &version).await;
+        let inputs: String = get_ids_from_user();
 
-    query_api(&inputs, &artifacts).await;
+        query_api(&version, &inputs, &artifacts).await;
+    }
+
 }
 
-
-
+async fn get_current_version() -> Option<String> {
+    let url = "https://static.nanoka.cc/manifest.json";
+    if let Ok(response) = reqwest::get(url).await {
+        if let Ok(manifest) = response.json::<Manifest>().await {
+            return Some(manifest.gi.latest);
+        }
+    }
+    None
+}
 
 
 
