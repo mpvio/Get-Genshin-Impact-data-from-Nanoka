@@ -54,16 +54,16 @@ fn write_diff_to_file(diffs: &Difference, name: &String, list: bool) -> String {
     title
 }
 
-async fn _compare_items<T: serde::Serialize>(old: T, new: T, name: &String) -> (bool, Option<String>) {
-    match serde_json_diff::values(json!(old), json!(new)) {
-        Some(diffs) => {
-            //println!("found diff!");
-            let result = write_diff_to_file(&diffs, &name, false);
-            (true, Some(result))
-        },
-        None => (false, None),
-    }
-}
+// async fn _compare_items<T: serde::Serialize>(old: T, new: T, name: &String) -> (bool, Option<String>) {
+//     match serde_json_diff::values(json!(old), json!(new)) {
+//         Some(diffs) => {
+//             //println!("found diff!");
+//             let result = write_diff_to_file(&diffs, &name, false);
+//             (true, Some(result))
+//         },
+//         None => (false, None),
+//     }
+// }
 
 async fn compare_characters(old_char : &ParsedCharacter, new_char : &ParsedCharacter) -> bool {
     let old_char_json = json!(old_char);
@@ -177,53 +177,58 @@ async fn compare_and_write<T: Serialize> (file: &mut File, old: &T, current: &T,
         };
         outcomes.push(write_diff_to_file_py(&differences, raw_name, false));
     }
-
-    // OLD IMPLEMENTATION
-    // let result = compare_via_python(old, current);
-    // let (map, success) = match result {
-    //     Ok(res) => {
-    //         (res, true)
-    //     },
-    //     Err(_) => {
-    //         (HashMap::<String, CleanDiffs>::new(), false)
-    //     },
-    // };
-
-    // if success {
-    //     // can use python's diff file
-    //     println!("PYTHON DIFF");
-    //     let raw_name = match name.strip_suffix(".json") {
-    //         Some(name) => name,
-    //         None => &name
-    //     };
-        
-    //     if map.len() > 0 {
-    //         // a change happened
-    //         let write_result = write_item_to_file(file, current, name, true);
-    //         outcomes.push(write_result);
-    //         // write difference to file
-    //         outcomes.push(write_diff_to_file_py(&map, raw_name, false));
-    //     } else {
-    //         // nothing changed, so no need to update anything
-    //         outcomes.push(format!("{name} unchanged."));
-    //     }
-    // } else {
-    //     // use rust's diff function
-    //     println!("RUST DIFF");
-    //     let (updated, update_result) = compare_items(old, current, name).await;
-    //     if updated {
-    //         let write_result = write_item_to_file(file, current, title, true);
-    //         outcomes.push(write_result);
-    //     }
-    //     if let Some(res) = update_result {
-    //         outcomes.push(res);
-    //     }
-    //     if outcomes.is_empty() {
-    //         outcomes.push(format!("{title} unchanged."));
-    //     }
-    // }
     outcomes
 }
+
+// async fn _compare_and_write<T: Serialize> (file: &mut File, old: &T, current: &T, name: &String, title: &String) -> Vec<String>{
+//     let mut outcomes = Vec::<String>::new();
+//     // OLD IMPLEMENTATION
+//     let result = compare_via_python(old, current);
+//     let (map, success) = match result {
+//         Ok(res) => {
+//             (res, true)
+//         },
+//         Err(_) => {
+//             (HashMap::<String, CleanDiffs>::new(), false)
+//         },
+//     };
+
+//     if success {
+//         // can use python's diff file
+//         println!("PYTHON DIFF");
+//         let raw_name = match name.strip_suffix(".json") {
+//             Some(name) => name,
+//             None => &name
+//         };
+        
+//         if map.len() > 0 {
+//             // a change happened
+//             let write_result = write_item_to_file(file, current, name, true);
+//             outcomes.push(write_result);
+//             // write difference to file
+//             outcomes.push(write_diff_to_file_py(&map, raw_name, false));
+//         } else {
+//             // nothing changed, so no need to update anything
+//             outcomes.push(format!("{name} unchanged."));
+//         }
+//     } else {
+//         // use rust's diff function
+//         println!("RUST DIFF");
+//         let (updated, update_result) = _compare_items(old, current, name).await;
+//         if updated {
+//             let write_result = write_item_to_file(file, current, title, true);
+//             outcomes.push(write_result);
+//         }
+//         if let Some(res) = update_result {
+//             outcomes.push(res);
+//         }
+//         if outcomes.is_empty() {
+//             outcomes.push(format!("{title} unchanged."));
+//         }
+//     }
+//     outcomes
+// }
+
 
 fn write_diff_to_file_py<T: Serialize>(diffs: &HashMap<String, T>, name: &str, list: bool) -> String {
     let date = chrono::Local::now().format("%y-%m-%d");
