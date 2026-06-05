@@ -3,10 +3,12 @@ use std::fs::{self, create_dir_all};
 use std::path::Path;
 use std::{fs::File, io::{self, BufReader, Seek, SeekFrom}};
 
-use crate::other_helper_funcs::python_commune::{compare_via_python, CleanDiffs};
+// use crate::other_helper_funcs::python_commune::{compare_via_python, CleanDiffs};
 use crate::{hakushin_lists::MinimalNameMap, parsed_models::ParsedCharacter};
 use crate::helper_funcs::Parsed;
-use serde_json::json;
+use difflib::sequencematcher::{SequenceMatcher};
+use diffx_core::{DiffResult};
+use serde_json::{Value, json};
 use serde_json_diff::Difference;
 use serde::{Serialize, Deserialize};
 
@@ -52,7 +54,7 @@ fn write_diff_to_file(diffs: &Difference, name: &String, list: bool) -> String {
     title
 }
 
-async fn compare_items<T: serde::Serialize>(old: T, new: T, name: &String) -> (bool, Option<String>) {
+async fn _compare_items<T: serde::Serialize>(old: T, new: T, name: &String) -> (bool, Option<String>) {
     match serde_json_diff::values(json!(old), json!(new)) {
         Some(diffs) => {
             //println!("found diff!");
@@ -79,56 +81,151 @@ async fn compare_characters(old_char : &ParsedCharacter, new_char : &ParsedChara
     }
 }
 
-async fn compare_and_write<T: Serialize> (file: &mut File, old: &T, current: &T, name: &String, title: &String) -> Vec<String>{
+// trying diffx & difflib
+fn compare_diffx<T: Serialize>(old: &T, new: &T) -> HashMap<String, String> {
+    let old_value = serde_json::to_value(old);
+    let new_value = serde_json::to_value(new);
+    let mut diff_map = HashMap::<String, String>::new();
 
-    let result = compare_via_python(old, current);
-    let (map, success) = match result {
-        Ok(res) => {
-            (res, true)
+    match (old_value, new_value) {
+        (Ok(ov), Ok(nv)) => {
+            let result = diffx_core::diff(&ov, &nv, None);
+            if let Ok(diffs) = result {
+                // println!("DIFFX");
+                for diff in diffs {
+                    let (key, val) = format_for_difflib(&diff);
+                    diff_map.insert(key, val);
+                }
+                // println!("{:#?}", diff_vec);
+            }
         },
-        Err(_) => {
-            (HashMap::<String, CleanDiffs>::new(), false)
-        },
-    };
+        _ => {},
+    }
 
+    diff_map
+}
+
+fn format_for_difflib(diff: &DiffResult) -> (String, String) {
+    match diff {
+        DiffResult::Added(location, value) => (format!("{location}"), format!("+ {value}")),
+        DiffResult::Removed(location, value) => (format!("{location}"), format!("- {value}")),
+        DiffResult::Modified(location, old, new) => {
+            let diff = difflib_calc(old, new);
+            (format!("{location}"), format!("~ {diff}"))
+        },
+        DiffResult::TypeChanged(location, old, new) => {
+            let diff = difflib_calc(old, new);
+            (format!("{location}"), format!("# {diff}"))
+        },
+    }
+}
+
+fn difflib_calc(old: &Value, new: &Value) -> String {
+    let old_string = serde_json::to_string_pretty(old).unwrap();
+    let new_string = serde_json::to_string_pretty(new).unwrap();
+
+    let mut matcher = SequenceMatcher::new(&old_string, &new_string);
+    let opcodes = matcher.get_opcodes();
+    let mut final_line = "".to_string();
+
+    for op in opcodes {
+        let old_slice = &old_string[op.first_start..op.first_end];
+        let new_slice = &new_string[op.second_start..op.second_end];
+
+        match op.tag.as_str() {
+            "equal" => {
+                let to_add = format!("{old_slice}");
+                final_line.push_str(&to_add);
+            }
+            "delete" => {
+                let to_add = format!("-<{old_slice}>");
+                final_line.push_str(&to_add);
+            }
+            "insert" => {
+                let to_add = format!("+<{new_slice}>");
+                final_line.push_str(&to_add);
+            }
+            "replace" => {
+                // Show old lines removed then new lines added
+                let to_add = format!("<{old_slice} -> {new_slice}>");
+                final_line.push_str(&to_add);
+            }
+            _ => {},
+        }
+    }
+    final_line
+}
+
+// end diffx &difflib test
+
+async fn compare_and_write<T: Serialize> (file: &mut File, old: &T, current: &T, name: &String, _title: &String) -> Vec<String>{
     let mut outcomes = Vec::<String>::new();
-    if success {
-        // can use python's diff file
-        println!("PYTHON DIFF");
+
+    // DIFFX & DIFFLIB
+    let differences = compare_diffx(old, current);
+    if differences.len() == 0 {
+        // no changes
+        outcomes.push(format!("{name} unchanged."));
+    } else {
+        // changes
+        let write_result = write_item_to_file(file, current, name, true);
+        outcomes.push(write_result);
+        // write difference to file
         let raw_name = match name.strip_suffix(".json") {
             Some(name) => name,
             None => &name
         };
-        
-        if map.len() > 0 {
-            // a change happened
-            let write_result = write_item_to_file(file, current, name, true);
-            outcomes.push(write_result);
-            // write difference to file
-            outcomes.push(write_diff_to_file_py(&map, raw_name, false))
-        } else {
-            // nothing changed, so no need to update anything
-            outcomes.push(format!("{name} unchanged."));
-        }
-    } else {
-        // use rust's diff function
-        println!("RUST DIFF");
-        let (updated, update_result) = compare_items(old, current, name).await;
-        if updated {
-            let write_result = write_item_to_file(file, current, title, true);
-            outcomes.push(write_result);
-        }
-        if let Some(res) = update_result {
-            outcomes.push(res);
-        }
-        if outcomes.is_empty() {
-            outcomes.push(format!("{title} unchanged."));
-        }
+        outcomes.push(write_diff_to_file_py(&differences, raw_name, false));
     }
+
+    // OLD IMPLEMENTATION
+    // let result = compare_via_python(old, current);
+    // let (map, success) = match result {
+    //     Ok(res) => {
+    //         (res, true)
+    //     },
+    //     Err(_) => {
+    //         (HashMap::<String, CleanDiffs>::new(), false)
+    //     },
+    // };
+
+    // if success {
+    //     // can use python's diff file
+    //     println!("PYTHON DIFF");
+    //     let raw_name = match name.strip_suffix(".json") {
+    //         Some(name) => name,
+    //         None => &name
+    //     };
+        
+    //     if map.len() > 0 {
+    //         // a change happened
+    //         let write_result = write_item_to_file(file, current, name, true);
+    //         outcomes.push(write_result);
+    //         // write difference to file
+    //         outcomes.push(write_diff_to_file_py(&map, raw_name, false));
+    //     } else {
+    //         // nothing changed, so no need to update anything
+    //         outcomes.push(format!("{name} unchanged."));
+    //     }
+    // } else {
+    //     // use rust's diff function
+    //     println!("RUST DIFF");
+    //     let (updated, update_result) = compare_items(old, current, name).await;
+    //     if updated {
+    //         let write_result = write_item_to_file(file, current, title, true);
+    //         outcomes.push(write_result);
+    //     }
+    //     if let Some(res) = update_result {
+    //         outcomes.push(res);
+    //     }
+    //     if outcomes.is_empty() {
+    //         outcomes.push(format!("{title} unchanged."));
+    //     }
+    // }
     outcomes
 }
 
-fn write_diff_to_file_py(diffs: &HashMap<String, CleanDiffs>, name: &str, list: bool) -> String {
+fn write_diff_to_file_py<T: Serialize>(diffs: &HashMap<String, T>, name: &str, list: bool) -> String {
     let date = chrono::Local::now().format("%y-%m-%d");
     let folders = if !list {"changes"} else {"list_changes"};
     create_dir_all(folders).unwrap();
@@ -181,6 +278,7 @@ pub async fn check_and_write(_category: &str, item: Parsed) -> Vec<String> {
         all_outcomes = match old_content {
             Ok(content) => {
                 //let name = item.name();
+                // compare_diffx(&content, &item);
                 match (content, item) {
                     (Parsed::C(old), Parsed::C(current)) => {
                         compare_and_write(&mut file, &old, &current, display_name, &title).await
